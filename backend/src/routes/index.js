@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { readiness } from '../bootstrap.js';
 import { getDashboard } from '../services/dashboard.service.js';
 import healthRoutes from './health.routes.js';
 import authRoutes from './auth.routes.js';
@@ -20,6 +21,9 @@ const router = Router();
 
 // Public
 router.use('/health', healthRoutes);
+
+// Everything below needs Google Sheets: run startup checks (once) and keep settings fresh.
+router.use(readiness);
 router.use('/auth', authRoutes); // /me is protected inside the module
 
 // Protected: every business route requires a valid JWT

@@ -256,10 +256,9 @@ export const settingsStore = new GoogleSheetsStore({
   ],
 });
 
-/** Checks/creates every tab and its columns. Called once at startup. */
-export async function initStores() {
-  // Sequential: tab creation and header changes are clearer one at a time.
-  for (const store of [
+/** Checks/creates every tab and its columns (one batch read). Called once per server start. */
+export function initStores() {
+  return GoogleSheetsStore.initAll([
     userStore,
     customerStore,
     productStore,
@@ -271,7 +270,5 @@ export async function initStores() {
     expenseStore,
     serviceStore,
     settingsStore,
-  ]) {
-    await store.init();
-  }
+  ]);
 }

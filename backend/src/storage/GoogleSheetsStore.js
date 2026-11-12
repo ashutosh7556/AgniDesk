@@ -110,39 +110,54 @@ export class GoogleSheetsStore {
    * network problem only logs a warning.
    */
   async init() {
+    return GoogleSheetsStore.initAll([this]);
+  }
+
+  /**
+   * Startup for several tabs with as few API calls as possible:
+   * 1 metadata read, tab creation if needed, ONE batch read of all tabs,
+   * then header checks / appends. Misconfiguration throws; a temporary
+   * network problem only logs a warning.
+   */
+  static async initAll(stores) {
     try {
       const titles = await getSheetTitles();
-      if (!titles.has(this.sheetName)) {
-        if (!this.createTab) throw new Error(`Google Sheets tab "${this.sheetName}" does not exist. Create it with its header row.`);
-        await this.#createTabWithHeaders();
+      for (const store of stores) {
+        if (titles.has(store.sheetName)) continue;
+        if (!store.createTab) throw new Error(`Google Sheets tab "${store.sheetName}" does not exist. Create it with its header row.`);
+        await store.#createTabWithHeaders();
       }
-      const { headers } = await this.#load({ fresh: true });
-      const has = (c) => [c.header, ...(c.aliases ?? [])].some((h) => headers.includes(h));
-      const missing = this.columns.filter((c) => !c.optional && !c.autoCreate && !has(c)).map((c) => c.header);
-      if (missing.length) throw new Error(`Google Sheets tab "${this.sheetName}" is missing column(s): ${missing.join(', ')}`);
-
-      const toAdd = this.columns.filter((c) => c.autoCreate && !has(c)).map((c) => c.header);
-      if (toAdd.length) {
-        await this.#withLock(async () => {
-          await callSheets((sheets) =>
-            sheets.spreadsheets.values.update({
-              spreadsheetId: googleSheetsConfig.spreadsheetId,
-              range: `${quote(this.sheetName)}!${columnLetter(headers.length)}1`,
-              valueInputOption: 'RAW',
-              requestBody: { values: [toAdd] },
-            }),
-          );
-          this.cache = null;
-        });
-        console.log(`[google-sheets] Added column(s) to "${this.sheetName}": ${toAdd.join(', ')}`);
-      }
+      await GoogleSheetsStore.loadAll();
+      for (const store of stores) await store.#checkColumns();
     } catch (error) {
       if (error instanceof ApiError && error.statusCode === 503) {
-        console.warn(`[google-sheets] Could not check tab "${this.sheetName}" at startup: ${error.message}`);
+        console.warn(`[google-sheets] Could not check tabs at startup: ${error.message}`);
         return;
       }
       throw error;
     }
+  }
+
+  async #checkColumns() {
+    const { headers } = this.cache ?? (await this.#load({ fresh: true }));
+    const has = (c) => [c.header, ...(c.aliases ?? [])].some((h) => headers.includes(h));
+    const missing = this.columns.filter((c) => !c.optional && !c.autoCreate && !has(c)).map((c) => c.header);
+    if (missing.length) throw new Error(`Google Sheets tab "${this.sheetName}" is missing column(s): ${missing.join(', ')}`);
+
+    const toAdd = this.columns.filter((c) => c.autoCreate && !has(c)).map((c) => c.header);
+    if (!toAdd.length) return;
+    await this.#withLock(async () => {
+      await callSheets((sheets) =>
+        sheets.spreadsheets.values.update({
+          spreadsheetId: googleSheetsConfig.spreadsheetId,
+          range: `${quote(this.sheetName)}!${columnLetter(headers.length)}1`,
+          valueInputOption: 'RAW',
+          requestBody: { values: [toAdd] },
+        }),
+      );
+      this.cache = null;
+    });
+    console.log(`[google-sheets] Added column(s) to "${this.sheetName}": ${toAdd.join(', ')}`);
   }
 
   // ---------- Public API ----------
@@ -275,7 +290,9 @@ export class GoogleSheetsStore {
   /** Loads every registered tab in ONE API request and fills each tab's cache. */
   static async loadAll() {
     if (batchInFlight) return batchInFlight;
-    const stores = [...registry];
+    // (tabs that don't exist yet are skipped; initAll creates them)
+    const titles = await getSheetTitles();
+    const stores = [...registry].filter((s) => titles.has(s.sheetName));
     batchInFlight = (async () => {
       try {
         const res = await callSheets((sheets) =>

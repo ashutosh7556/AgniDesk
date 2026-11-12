@@ -1,6 +1,7 @@
 import { invoiceItemStore, invoiceStore, productStore } from '../storage/stores.js';
 import { getStockLevels } from './inventory.service.js';
 import { findAllInvoicesWithPayments } from './invoice.service.js';
+import { waitUntil } from '@vercel/functions';
 
 /**
  * Keeps the spreadsheet's DISPLAY columns in step with the real data:
@@ -73,6 +74,13 @@ async function runTasks(names) {
 
 /** Schedule display-column syncs: 'stock' | 'invoicePayments' | 'invoiceItems'. */
 export function scheduleSheetSync(...names) {
+  // Serverless (Vercel): the instance may be frozen after the response, so run now and
+  // ask the platform to keep the function alive until the sync finishes.
+  if (process.env.VERCEL) {
+    const task = (running = running.then(() => runTasks([...new Set(names)])));
+    waitUntil(task);
+    return;
+  }
   names.forEach((n) => pending.add(n));
   clearTimeout(timer);
   timer = setTimeout(() => {

@@ -50,10 +50,22 @@ export function getBusinessProfile() {
 }
 
 /** Loads saved settings into memory. Called at startup (and after a restore). */
+let loadedAt = 0;
+const REFRESH_MS = 30_000;
+
 export async function loadSettings() {
   const rows = await settingsStore.findAll();
   saved = Object.fromEntries(rows.filter((r) => r.key in SETTINGS_DEFAULTS).map((r) => [r.key, r.value]));
+  loadedAt = Date.now();
   return getSettings();
+}
+
+/**
+ * Re-reads settings at most every 30 s. On serverless hosts several server
+ * copies run at once; this makes a change saved through one copy reach the others.
+ */
+export async function refreshSettingsIfStale() {
+  if (Date.now() - loadedAt > REFRESH_MS) await loadSettings();
 }
 
 /** Saves the given keys (already validated), then refreshes the in-memory copy. */

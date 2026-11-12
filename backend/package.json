@@ -17,6 +17,7 @@
     "migrate:all-to-sheets": "node --env-file-if-exists=.env scripts/migrateAllToSheets.js"
   },
   "dependencies": {
+    "@vercel/functions": "^3.11.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "exceljs": "^4.4.0",

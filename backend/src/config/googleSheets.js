@@ -26,11 +26,14 @@ const spreadsheetId = (process.env.GOOGLE_SHEETS_SPREADSHEET_ID ?? '').trim();
 const keyFileSetting = (process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE ?? '').trim();
 // Relative paths are resolved from the backend folder (where npm scripts run).
 const keyFile = keyFileSetting ? path.resolve(keyFileSetting) : '';
+// Hosted platforms without file uploads (e.g. Vercel): the key JSON itself, raw or base64-encoded.
+const keyJson = (process.env.GOOGLE_SERVICE_ACCOUNT_KEY ?? '').trim();
 
 export const googleSheetsConfig = Object.freeze({
   spreadsheetId,
   keyFile,
-  isConfigured: Boolean(spreadsheetId && keyFile),
+  usesKeyVariable: Boolean(keyJson),
+  isConfigured: Boolean(spreadsheetId && (keyJson || keyFile)),
 });
 
 export class GoogleSheetsConfigError extends Error {
@@ -45,18 +48,27 @@ export class GoogleSheetsConfigError extends Error {
 function loadServiceAccountCredentials() {
   if (!googleSheetsConfig.isConfigured) {
     throw new GoogleSheetsConfigError(
-      'Google Sheets is not configured. Set GOOGLE_SHEETS_SPREADSHEET_ID and GOOGLE_SERVICE_ACCOUNT_KEY_FILE in backend/.env.',
+      'Google Sheets is not configured. Set GOOGLE_SHEETS_SPREADSHEET_ID and GOOGLE_SERVICE_ACCOUNT_KEY (or GOOGLE_SERVICE_ACCOUNT_KEY_FILE).',
     );
   }
-  if (!fs.existsSync(keyFile)) {
-    throw new GoogleSheetsConfigError(`Google service account key file not found at: ${keyFile}`);
-  }
-
   let credentials;
-  try {
-    credentials = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
-  } catch {
-    throw new GoogleSheetsConfigError('Google service account key file is not valid JSON.');
+  if (keyJson) {
+    // Accept raw JSON or base64 (base64 avoids newline issues in some dashboards).
+    const text = keyJson.startsWith('{') ? keyJson : Buffer.from(keyJson, 'base64').toString('utf8');
+    try {
+      credentials = JSON.parse(text);
+    } catch {
+      throw new GoogleSheetsConfigError('GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON (or base64 of the JSON key).');
+    }
+  } else {
+    if (!fs.existsSync(keyFile)) {
+      throw new GoogleSheetsConfigError(`Google service account key file not found at: ${keyFile}`);
+    }
+    try {
+      credentials = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
+    } catch {
+      throw new GoogleSheetsConfigError('Google service account key file is not valid JSON.');
+    }
   }
 
   if (credentials.type !== 'service_account' || !credentials.client_email || !credentials.private_key) {

@@ -1,0 +1,11 @@
+# Never upload secrets or local data to Vercel
+.env
+.env.*
+!.env.example
+credentials/
+*service-account*.json
+data/
+data-*/
+backups/
+node_modules/
+scripts/

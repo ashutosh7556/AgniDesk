@@ -1,17 +1,12 @@
 import { createApp } from './app.js';
 import { env } from './config/env.js';
-import { initStores } from './storage/stores.js';
 import { googleSheetsConfig } from './config/googleSheets.js';
-import { ensureOwnerAccount } from './services/auth.service.js';
-import { loadSettings } from './services/settings.service.js';
-import { syncAllSheetsNow } from './services/sheetSync.service.js';
+import { ensureReady } from './bootstrap.js';
 
+/** Long-running server (local development, or hosts like Render/Railway). Vercel uses api/index.js instead. */
 async function start() {
-  // Create the data folder / workbooks and the first owner account before accepting requests.
-  await initStores();
-  await ensureOwnerAccount();
-  await loadSettings();
-  syncAllSheetsNow().catch(() => {}); // refresh display columns in the background
+  // Check Google Sheets tabs and the first owner account before accepting requests.
+  await ensureReady();
   console.log(`[storage] Google Sheets spreadsheet: ${googleSheetsConfig.spreadsheetId.slice(0, 6)}… (all data)`);
 
   const app = createApp();
