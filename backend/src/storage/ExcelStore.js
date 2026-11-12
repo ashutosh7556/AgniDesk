@@ -63,7 +63,8 @@ const SYSTEM_KEYS = new Set(['id', 'createdAt', 'updatedAt']);
  * Reads are lock-free: thanks to the atomic rename a reader always sees
  * either the complete old file or the complete new file.
  *
- * columns: [{ key, header, type: 'string' | 'number' | 'json', width?, default? }]
+ * columns: [{ key, header, type: 'string' | 'number' | 'json', width?, default?, aliases? }]
+ * `aliases` lists old header names so files written before a rename still load.
  * 'id', 'createdAt' and 'updatedAt' columns are added automatically.
  * 'json' columns hold structured data (e.g. line items) as JSON text in one cell.
  */
@@ -186,7 +187,10 @@ export class ExcelStore {
     sheet.getRow(1).eachCell((cell, colNumber) => {
       const header = String(normaliseCellValue(cell.value)).trim().toLowerCase();
       const column = this.columns.find(
-        (c) => c.header.toLowerCase() === header || c.key.toLowerCase() === header,
+        (c) =>
+          c.header.toLowerCase() === header ||
+          c.key.toLowerCase() === header ||
+          c.aliases?.some((alias) => alias.toLowerCase() === header), // renamed columns in older files
       );
       if (column) columnByIndex.set(colNumber, column);
     });

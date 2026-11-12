@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { AlertTriangle, Boxes, IndianRupee, Package, Pencil, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Boxes, History, IndianRupee, Package, PackagePlus, Pencil, Plus, Trash2 } from 'lucide-react';
+import StockAdjustModal from '../../components/products/StockAdjustModal.jsx';
+import StockHistoryModal from '../../components/products/StockHistoryModal.jsx';
 import PageHeader from '../../components/ui/PageHeader.jsx';
 import StatCard from '../../components/ui/StatCard.jsx';
 import SearchInput from '../../components/ui/SearchInput.jsx';
@@ -27,6 +29,7 @@ export default function ProductsPage() {
 
   const [formState, setFormState] = useState(null); // { product? } | null
   const [productToDelete, setProductToDelete] = useState(null);
+  const [stockModal, setStockModal] = useState(null); // { mode: 'adjust' | 'history', product } | null
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { data, error, isLoading, reload } = useFetch(
@@ -121,6 +124,12 @@ export default function ProductsPage() {
                 </td>
                 <td className="px-3 py-3 sm:px-5">
                   <div className="flex justify-end gap-1">
+                    <button type="button" className="btn-icon" onClick={() => setStockModal({ mode: 'adjust', product })} aria-label={`Adjust stock of ${product.name}`} title="Adjust stock">
+                      <PackagePlus className="h-4 w-4" />
+                    </button>
+                    <button type="button" className="btn-icon" onClick={() => setStockModal({ mode: 'history', product })} aria-label={`Stock history of ${product.name}`} title="Stock history">
+                      <History className="h-4 w-4" />
+                    </button>
                     <button type="button" className="btn-icon" onClick={() => setFormState({ product })} aria-label={`Edit ${product.name}`} title="Edit">
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -198,6 +207,18 @@ export default function ProductsPage() {
         {renderBody()}
         <Pagination pagination={data?.pagination} onPageChange={setPage} itemLabel="products" />
       </div>
+
+      {stockModal?.mode === 'adjust' && (
+        <StockAdjustModal
+          product={stockModal.product}
+          onClose={() => setStockModal(null)}
+          onSaved={() => {
+            setStockModal(null);
+            reload();
+          }}
+        />
+      )}
+      {stockModal?.mode === 'history' && <StockHistoryModal product={stockModal.product} onClose={() => setStockModal(null)} />}
 
       <ProductFormModal
         isOpen={Boolean(formState)}

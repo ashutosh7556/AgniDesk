@@ -16,6 +16,7 @@ npm-debug.log*
 
 # Business data (Excel storage, backups) - never commit real records
 backend/data/
+backend/data-*/
 backend/backups/
 
 # OS / editor

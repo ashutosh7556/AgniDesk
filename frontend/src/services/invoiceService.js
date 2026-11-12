@@ -9,7 +9,9 @@ export const listInvoices = ({ search, customerId, invoiceType, paymentStatus, p
 export const getInvoice = (id, signal) => apiRequest(base(id), { signal });
 export const createInvoice = (data) => apiRequest('/invoices', { method: 'POST', body: data });
 export const updateInvoice = (id, data) => apiRequest(base(id), { method: 'PUT', body: data });
-export const updateInvoicePayment = (id, amountPaid) =>
-  apiRequest(`${base(id)}/payment`, { method: 'PATCH', body: { amountPaid } });
-export const cancelInvoice =(id) => apiRequest(`${base(id)}/cancel`, { method: 'POST' });
+export const cancelInvoice = (id) => apiRequest(`${base(id)}/cancel`, { method: 'POST' });
 export const getInvoicePdf = (id) => apiRequest(`${base(id)}/pdf`, { responseType: 'blob' });
+
+export const listInvoicePayments = (id, signal) => apiRequest(`${base(id)}/payments`, { signal });
+/** data: { date, amount, mode, reference?, note? } */
+export const recordPayment = (id, data) => apiRequest(`${base(id)}/payments`, { method: 'POST', body: data });

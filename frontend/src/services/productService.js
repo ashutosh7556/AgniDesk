@@ -11,4 +11,10 @@ export const createProduct = (data) => apiRequest('/products', { method: 'POST',
 export const updateProduct = (id, data) =>
   apiRequest(`/products/${encodeURIComponent(id)}`, { method: 'PUT', body: data });
 
-export const deleteProduct = (id) => apiRequest(`/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
+/** data: { date, type: 'purchase' | 'adjustment', quantity (+/-), note } */
+export const adjustStock = (id, data) =>
+  apiRequest(`/products/${encodeURIComponent(id)}/stock`, { method: 'POST', body: data });
+
+export const getStockHistory = (id, signal) => apiRequest(`/products/${encodeURIComponent(id)}/stock`, { signal });
+
+export const deleteProduct =(id) => apiRequest(`/products/${encodeURIComponent(id)}`, { method: 'DELETE' });

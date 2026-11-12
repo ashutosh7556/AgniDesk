@@ -31,6 +31,10 @@ export const DEFAULT_QUOTATION_TERMS = [
   'Warranty as per manufacturer terms.',
 ].join('\n');
 
+export const EXPENSE_CATEGORIES = ['Product Purchases', 'Transportation', 'Installation', 'Maintenance', 'Other'];
+
+export const PAYMENT_MODES = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
+
 /** Document number prefixes. Numbers restart every financial year (Apr–Mar). */
 export const NUMBER_PREFIX = Object.freeze({
   quotation: 'QT',

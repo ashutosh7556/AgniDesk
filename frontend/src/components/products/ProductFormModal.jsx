@@ -13,7 +13,7 @@ const EMPTY_FORM = {
   category: '',
   purchasePrice: '',
   sellingPrice: '',
-  quantity: '0',
+  openingStock: '0',
   lowStockThreshold: '5',
   hsnCode: '',
   gstRate: String(DEFAULT_GST_RATE),
@@ -23,12 +23,13 @@ const EMPTY_FORM = {
 const toForm = (product) =>
   product ? Object.fromEntries(Object.keys(EMPTY_FORM).map((key) => [key, String(product[key] ?? '')])) : EMPTY_FORM;
 
-const toPayload = (form) => ({
+const toPayload = (form, isEdit) => ({
   name: form.name.trim(),
   category: form.category,
   purchasePrice: Number(form.purchasePrice),
   sellingPrice: Number(form.sellingPrice),
-  quantity: Number(form.quantity),
+  // Opening stock is set once on create; later changes go through Adjust stock.
+  ...(isEdit ? {} : { openingStock: Number(form.openingStock) }),
   lowStockThreshold: Number(form.lowStockThreshold),
   hsnCode: form.hsnCode.trim(),
   gstRate: Number(form.gstRate),
@@ -57,13 +58,13 @@ export default function ProductFormModal({ isOpen, product, onClose, onSaved }) 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const validationErrors = validateProduct(form);
+    const validationErrors = validateProduct(form, { isEdit });
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
     setIsSaving(true);
     try {
-      const payload = toPayload(form);
+      const payload = toPayload(form, isEdit);
       const saved = isEdit ? await updateProduct(product.id, payload) : await createProduct(payload);
       toast.success(isEdit ? 'Product updated.' : 'Product added.');
       onSaved(saved);
@@ -144,7 +145,15 @@ export default function ProductFormModal({ isOpen, product, onClose, onSaved }) 
             {margin < 0 && ' (selling below purchase price)'}
           </p>
         )}
-        <TextField label="Available quantity" name="quantity" type="number" inputMode="numeric" min="0" step="1" value={form.quantity} onChange={handleChange} error={errors.quantity} required />
+        {isEdit ? (
+          <div>
+            <p className="mb-1.5 block text-sm font-medium text-slate-700">Available stock</p>
+            <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800">{product.quantity}</p>
+            <p className="mt-1.5 text-xs text-slate-500">Use “Adjust stock” on the products list to change it.</p>
+          </div>
+        ) : (
+          <TextField label="Opening stock" name="openingStock" type="number" inputMode="numeric" min="0" step="1" value={form.openingStock} onChange={handleChange} error={errors.openingStock} hint="Quantity you have today." required />
+        )}
         <TextField
           label="Low stock alert at"
           name="lowStockThreshold"

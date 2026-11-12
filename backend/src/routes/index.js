@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { getDashboard } from '../services/dashboard.service.js';
 import healthRoutes from './health.routes.js';
 import authRoutes from './auth.routes.js';
 import customerRoutes from './customer.routes.js';
 import productRoutes from './product.routes.js';
 import quotationRoutes from './quotation.routes.js';
 import invoiceRoutes from './invoice.routes.js';
+import paymentRoutes from './payment.routes.js';
+import expenseRoutes from './expense.routes.js';
 
 /** Mounts all API route modules under /api. */
 const router = Router();
@@ -19,5 +22,10 @@ router.use('/customers', requireAuth, customerRoutes);
 router.use('/products', requireAuth, productRoutes);
 router.use('/quotations', requireAuth, quotationRoutes);
 router.use('/invoices', requireAuth, invoiceRoutes);
+router.use('/payments', requireAuth, paymentRoutes);
+router.use('/expenses', requireAuth, expenseRoutes);
+router.get('/dashboard', requireAuth, async (_req, res) => {
+  res.json({ success: true, data: await getDashboard() });
+});
 
 export default router;

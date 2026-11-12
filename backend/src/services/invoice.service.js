@@ -1,4 +1,4 @@
-import { invoiceStore } from '../storage/stores.js';
+import { invoiceStore, paymentStore } from '../storage/stores.js';
 import { NUMBER_PREFIX } from '../config/business.js';
 import { ApiError } from '../utils/ApiError.js';
 import { matchesSearch, paginate } from '../utils/listing.js';
@@ -10,6 +10,7 @@ import {
   nextDocumentNumber,
   toListItem,
 } from './billingDocument.service.js';
+import { paidTotals, recordPayment } from './payment.service.js';
 
 const SEARCH_FIELDS = ['number', 'customerName'];
 
@@ -23,22 +24,25 @@ export function paymentStatusOf(invoice) {
   return 'unpaid';
 }
 
-const withPaymentInfo = (invoice) => ({
-  ...invoice,
-  paymentStatus: paymentStatusOf(invoice),
-  balanceDue: invoice.status === 'cancelled' ? 0 : round2(Math.max(invoice.grandTotal - invoice.amountPaid, 0)),
-});
-
-const assertPaidWithinTotal = (amountPaid, grandTotal) => {
-  if (amountPaid > grandTotal) {
-    throw new ApiError(400, 'Please correct the highlighted fields.', [
-      { field: 'amountPaid', message: 'Amount paid cannot be more than the invoice total.' },
-    ]);
-  }
+/** Adds amountPaid (sum of payment records), balanceDue and paymentStatus. */
+export const withPaymentInfo = (invoice, amountPaid = 0) => {
+  const enriched = { ...invoice, amountPaid };
+  return {
+    ...enriched,
+    paymentStatus: paymentStatusOf(enriched),
+    balanceDue: invoice.status === 'cancelled' ? 0 : round2(Math.max(invoice.grandTotal - amountPaid, 0)),
+  };
 };
 
+/** All invoices with payment info — also used by the dashboard and reports. */
+export async function findAllInvoicesWithPayments() {
+  const [invoices, payments] = await Promise.all([invoiceStore.findAll(), paymentStore.findAll()]);
+  const paid = paidTotals(payments);
+  return invoices.map((inv) => withPaymentInfo(inv, paid.get(inv.id) ?? 0));
+}
+
 export async function listInvoices({ search, customerId, invoiceType, paymentStatus, page, limit }) {
-  const invoices = (await invoiceStore.findAll()).map(withPaymentInfo);
+  const invoices = await findAllInvoicesWithPayments();
 
   const filtered = invoices
     .filter((inv) => !customerId || inv.customerId === customerId)
@@ -60,20 +64,23 @@ export async function listInvoices({ search, customerId, invoiceType, paymentSta
 }
 
 export async function getInvoice(id) {
-  const invoice = await invoiceStore.findById(id);
+  const [invoice, payments] = await Promise.all([invoiceStore.findById(id), paymentStore.findAll()]);
   if (!invoice) throw new ApiError(404, 'Invoice not found.');
-  return withPaymentInfo(invoice);
+  return withPaymentInfo(invoice, paidTotals(payments).get(id) ?? 0);
 }
 
-export async function createInvoice(input) {
+export async function createInvoice({ payment, ...input }) {
   const document = await buildBillingDocument(input, taxModeFor(input.invoiceType));
-  assertPaidWithinTotal(input.amountPaid, document.grandTotal);
+  if (payment && payment.amount > document.grandTotal) {
+    throw new ApiError(400, 'Please correct the highlighted fields.', [
+      { field: 'payment.amount', message: 'Amount received cannot be more than the invoice total.' },
+    ]);
+  }
 
   const created = await invoiceStore.create((rows) => ({
     ...document,
     invoiceType: input.invoiceType,
     status: 'active',
-    amountPaid: input.amountPaid,
     // Separate number series per invoice type, restarting each financial year.
     number: nextDocumentNumber(
       rows.filter((r) => r.invoiceType === input.invoiceType),
@@ -81,10 +88,22 @@ export async function createInvoice(input) {
       input.date,
     ),
   }));
-  return withPaymentInfo(created);
+
+  if (payment) {
+    // Second file write: if it fails, the invoice still exists and the payment can be re-entered.
+    try {
+      await recordPayment(created.id, { ...payment, date: input.date, note: 'Received at billing' });
+    } catch (error) {
+      throw new ApiError(
+        500,
+        `Invoice ${created.number} was created, but the payment could not be saved. Please record it from the invoice page. (${error.message})`,
+      );
+    }
+  }
+  return getInvoice(created.id);
 }
 
-export async function updateInvoice(id, input) {
+export async function updateInvoice(id, { payment: _ignored, ...input }) {
   const existing = await getInvoice(id);
   if (existing.status === 'cancelled') throw new ApiError(409, 'Cancelled invoices cannot be edited.');
   if (existing.invoiceType !== input.invoiceType) {
@@ -95,29 +114,28 @@ export async function updateInvoice(id, input) {
   assertSameFinancialYear(existing.date, input.date);
 
   const document = await buildBillingDocument(input, taxModeFor(input.invoiceType));
-  assertPaidWithinTotal(input.amountPaid, document.grandTotal);
+  if (document.grandTotal < existing.amountPaid) {
+    throw new ApiError(
+      400,
+      `The new total (${document.grandTotal}) is less than the amount already received (${existing.amountPaid}). Delete a payment first.`,
+    );
+  }
 
-  const updated = await invoiceStore.update(id, { ...document, amountPaid: input.amountPaid });
-  if (!updated) throw new ApiError(404, 'Invoice not found.');
-  return withPaymentInfo(updated);
-}
-
-/** Updates only the amount received; the rest of the invoice stays untouched. */
-export async function updatePayment(id, { amountPaid }) {
-  const existing = await getInvoice(id);
-  if (existing.status === 'cancelled') throw new ApiError(409, 'Cancelled invoices cannot be updated.');
-  assertPaidWithinTotal(amountPaid, existing.grandTotal);
-  const updated = await invoiceStore.update(id, { amountPaid });
-  return withPaymentInfo(updated);
+  await invoiceStore.update(id, document);
+  return getInvoice(id);
 }
 
 /**
  * Invoices are never deleted: GST rules require a continuous number series,
  * so an invoice issued by mistake is cancelled and keeps its number.
+ * Cancelling restores stock automatically (stock is derived from active invoices).
  */
 export async function cancelInvoice(id) {
   const existing = await getInvoice(id);
   if (existing.status === 'cancelled') throw new ApiError(409, 'Invoice is already cancelled.');
-  const updated = await invoiceStore.update(id, { status: 'cancelled' });
-  return withPaymentInfo(updated);
+  if (existing.amountPaid > 0) {
+    throw new ApiError(409, 'This invoice has payments recorded. Delete the payments (refund) before cancelling it.');
+  }
+  await invoiceStore.update(id, { status: 'cancelled' });
+  return getInvoice(id);
 }

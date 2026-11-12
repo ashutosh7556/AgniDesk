@@ -42,7 +42,7 @@ const checkNumber = (raw, label, { integer = false } = {}) => {
   return null;
 };
 
-export const validateProduct = (form) => {
+export const validateProduct = (form, { isEdit = false } = {}) => {
   const errors = {};
   if (!form.name.trim()) errors.name = 'Product name is required.';
   if (!form.category) errors.category = 'Select a category.';
@@ -51,7 +51,7 @@ export const validateProduct = (form) => {
   const checks = {
     purchasePrice: checkNumber(form.purchasePrice, 'Purchase price'),
     sellingPrice: checkNumber(form.sellingPrice, 'Selling price'),
-    quantity: checkNumber(form.quantity, 'Quantity', { integer: true }),
+    openingStock: isEdit ? null : checkNumber(form.openingStock, 'Opening stock', { integer: true }),
     lowStockThreshold: checkNumber(form.lowStockThreshold, 'Low stock alert level', { integer: true }),
   };
   for (const [field, message] of Object.entries(checks)) {

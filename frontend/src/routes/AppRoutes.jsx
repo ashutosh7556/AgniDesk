@@ -13,12 +13,14 @@ import QuotationDetailPage from '../pages/quotations/QuotationDetailPage.jsx';
 import InvoicesPage from '../pages/invoices/InvoicesPage.jsx';
 import InvoiceFormPage from '../pages/invoices/InvoiceFormPage.jsx';
 import InvoiceDetailPage from '../pages/invoices/InvoiceDetailPage.jsx';
+import PaymentsPage from '../pages/payments/PaymentsPage.jsx';
+import ExpensesPage from '../pages/expenses/ExpensesPage.jsx';
 import ComingSoonPage from '../pages/ComingSoonPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 import { NAV_ITEMS } from '../constants/navigation.js';
 
 /** Modules not built yet (later phases) render a placeholder so navigation never dead-ends. */
-const CURRENT_PHASE = 3;
+const CURRENT_PHASE = 4;
 const upcomingModules = NAV_ITEMS.filter((item) => item.phase > CURRENT_PHASE);
 
 export default function AppRoutes() {
@@ -43,6 +45,8 @@ export default function AppRoutes() {
           <Route path="/invoices/new" element={<InvoiceFormPage />} />
           <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
           <Route path="/invoices/:id/edit" element={<InvoiceFormPage />} />
+          <Route path="/payments" element={<PaymentsPage />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
           {upcomingModules.map((item) => (
             <Route
               key={item.path}

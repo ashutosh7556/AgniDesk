@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import SearchSelect from '../ui/SearchSelect.jsx';
 import { fetchProductOptions } from './pickerOptions.js';
 import { DEFAULT_GST_RATE, GST_RATES } from '../../constants/business.js';
@@ -54,7 +54,7 @@ function Field({ id, label, error, children, className = '' }) {
  * items: editable lines; computed: lines from calculateDocument (same order).
  * errors: keyed like "items.0.quantity"; onClearError(key) clears one as the user edits.
  */
-export default function LineItemsEditor({ items, computed, onChange, showGst, errors = {}, onClearError }) {
+export default function LineItemsEditor({ items, computed, onChange, showGst, showStockWarning = false, errors = {}, onClearError }) {
   const update = (index, field, value) => {
     onChange(items.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
     const errorKey = `items.${index}.${field}`;
@@ -72,6 +72,7 @@ export default function LineItemsEditor({ items, computed, onChange, showGst, er
         hsnCode: product.hsnCode ?? '',
         rate: String(product.sellingPrice),
         gstRate: String(product.gstRate ?? DEFAULT_GST_RATE),
+        availableStock: product.quantity, // UI-only: for the low-stock warning, never sent to the API
       }),
     ]);
   };
@@ -128,6 +129,12 @@ export default function LineItemsEditor({ items, computed, onChange, showGst, er
                     <span className="block py-2 text-sm font-semibold tabular-nums text-slate-800">{formatMoney(line?.total ?? 0)}</span>
                   </div>
                 </div>
+                {showStockWarning && item.availableStock !== undefined && Number(item.quantity) > item.availableStock && (
+                  <p className="flex items-center gap-1 text-xs font-medium text-amber-700">
+                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                    Only {item.availableStock} in stock. You can still save; stock will go negative.
+                  </p>
+                )}
               </div>
               <button
                 type="button"

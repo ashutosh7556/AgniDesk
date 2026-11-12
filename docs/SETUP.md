@@ -92,7 +92,15 @@ Protected routes need `Authorization: Bearer <token>`.
 | POST | `/api/invoices` | ✓ | Create GST / Non-GST invoice (number auto-assigned) |
 | GET | `/api/invoices/:id` | ✓ | Invoice details |
 | PUT | `/api/invoices/:id` | ✓ | Update invoice (type and number unchanged) |
-| PATCH | `/api/invoices/:id/payment` | ✓ | `{ amountPaid }` update amount received |
+| GET | `/api/invoices/:id/payments` | ✓ | Payments for one invoice |
+| POST | `/api/invoices/:id/payments` | ✓ | Record payment `{ date, amount, mode, reference?, note? }` |
+| GET | `/api/payments?search=&mode=&from=&to=&page=&limit=` | ✓ | All payments + total received |
+| DELETE | `/api/payments/:id` | ✓ | Delete payment (refund / correction) |
+| GET | `/api/expenses?search=&category=&from=&to=&page=&limit=` | ✓ | Expenses + category totals |
+| POST / PUT / DELETE | `/api/expenses[/:id]` | ✓ | Create / update / delete expense |
+| GET | `/api/products/:id/stock` | ✓ | Stock history with running balance |
+| POST | `/api/products/:id/stock` | ✓ | Adjust stock `{ date, type: purchase|adjustment, quantity, note }` |
+| GET | `/api/dashboard` | ✓ | Dashboard figures |
 | POST | `/api/invoices/:id/cancel` | ✓ | Cancel invoice (invoices are never deleted) |
 | GET | `/api/invoices/:id/pdf` | ✓ | Invoice PDF |
 
@@ -110,6 +118,16 @@ Protected routes need `Authorization: Bearer <token>`.
   their number, show a CANCELLED watermark and are excluded from totals.
 - Customers with quotations or invoices can't be deleted.
 - Set `BUSINESS_GSTIN` in `backend/.env` so it is printed on GST invoices.
+
+## Stock & payments (calculated, never stored)
+
+- **Available stock** = opening stock + stock adjustments − quantities on active invoices.
+  Creating, editing or cancelling an invoice changes stock automatically. Products are
+  never written to when you sell, so the numbers cannot drift out of sync.
+- **Amount paid** on an invoice = sum of its payment records (`payments.xlsx`).
+- An invoice with payments cannot be cancelled until the payments are deleted, and its
+  total cannot be reduced below the amount already received.
+- Selling more than available stock is allowed (stock goes negative) with a warning.
 
 ## Excel storage notes
 

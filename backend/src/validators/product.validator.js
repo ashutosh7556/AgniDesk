@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { listQuerySchema, requiredText } from './common.js';
 import { DEFAULT_GST_RATE, GST_RATES } from '../config/business.js';
+import { isValidIsoDate } from '../utils/dates.js';
 
 export const PRODUCT_CATEGORIES = ['Fire Extinguisher', 'Hydrant', 'Safety', 'AMC & Service'];
 
@@ -30,15 +31,38 @@ export const gstRateSchema = z
   .number({ error: 'Select a GST rate.' })
   .refine((value) => GST_RATES.includes(value), `GST rate must be one of ${GST_RATES.join(', ')}%.`);
 
-export const productSchema = z.object({
+/**
+ * Update: product details only. Stock is never edited directly — it changes
+ * through invoices and stock adjustments so every change has a trail.
+ */
+export const productUpdateSchema = z.object({
   name: requiredText('Product name', 150),
   category: z.enum(PRODUCT_CATEGORIES, { error: 'Select a valid category.' }),
   purchasePrice: money('Purchase price'),
   sellingPrice: money('Selling price'),
-  quantity: wholeNumber('Quantity'),
   lowStockThreshold: wholeNumber('Low stock alert level'),
   hsnCode: hsnSchema,
   gstRate: gstRateSchema.optional().default(DEFAULT_GST_RATE),
+});
+
+/** Create: details + opening stock (set once). */
+export const productCreateSchema = productUpdateSchema.extend({
+  openingStock: wholeNumber('Opening stock'),
+});
+
+export const stockAdjustmentSchema = z.object({
+  date: z.string({ error: 'Date is required.' }).refine(isValidIsoDate, 'Date must be a valid date.'),
+  type: z.enum(['purchase', 'adjustment'], { error: 'Choose purchase or adjustment.' }),
+  quantity: z
+    .number({ error: 'Quantity must be a number.' })
+    .int('Quantity must be a whole number.')
+    .min(-1_000_000)
+    .max(1_000_000)
+    .refine((value) => value !== 0, 'Quantity cannot be 0.'),
+  note: z.string().trim().max(300).optional().default(''),
+}).refine((data) => data.type !== 'purchase' || data.quantity > 0, {
+  path: ['quantity'],
+  message: 'Purchased quantity must be more than 0.',
 });
 
 export const productListQuerySchema = listQuerySchema.extend({

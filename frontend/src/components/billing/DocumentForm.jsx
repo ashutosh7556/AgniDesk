@@ -9,7 +9,7 @@ import TotalsSummary from './TotalsSummary.jsx';
 import { fetchCustomerOptions, toCustomerOption } from './pickerOptions.js';
 import { calculateDocument, detectSupplyType } from '../../utils/billing.js';
 import { addDays, todayIST } from '../../utils/dates.js';
-import { SELLER_STATE_CODE } from '../../constants/business.js';
+import { PAYMENT_MODES, SELLER_STATE_CODE } from '../../constants/business.js';
 import { useToast } from '../../hooks/useToast.js';
 
 /** Default terms for new quotations (editable per quotation). */
@@ -82,7 +82,9 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
       items: document?.items?.length ? document.items.map(toEditableLine) : [createLineItem()],
       notes: document?.notes ?? '',
       terms: document?.terms ?? (isInvoice ? '' : DEFAULT_TERMS),
-      amountPaid: String(document?.amountPaid ?? 0),
+      paymentAmount: '',
+      paymentMode: 'Cash',
+      paymentReference: '',
     };
   });
   const [errors, setErrors] = useState({});
@@ -98,7 +100,8 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
     () => calculateDocument({ items: toPayloadItems(state.items), taxMode, supplyType: state.supplyType }),
     [state.items, taxMode, state.supplyType],
   );
-  const amountPaid = toNumber(state.amountPaid);
+  // Editing: payments already recorded. Creating: optional payment received now.
+  const amountPaid = isEdit ? (document.amountPaid ?? 0) : toNumber(state.paymentAmount);
 
   const handleCustomerSelect = (option) => {
     setState((prev) => ({
@@ -112,8 +115,13 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
   const handleSubmit = async (event) => {
     event.preventDefault();
     const validationErrors = validate(state, kind);
-    if (isInvoice && amountPaid > totals.grandTotal) validationErrors.amountPaid = 'Amount paid cannot be more than the invoice total.';
-    if (isInvoice && amountPaid < 0) validationErrors.amountPaid = 'Amount paid cannot be negative.';
+    if (isInvoice && !isEdit) {
+      if (amountPaid > totals.grandTotal) validationErrors['payment.amount'] = 'Amount received cannot be more than the invoice total.';
+      if (amountPaid < 0) validationErrors['payment.amount'] = 'Amount cannot be negative.';
+    }
+    if (isInvoice && isEdit && totals.grandTotal < amountPaid) {
+      validationErrors.items = `Total cannot be less than the ${amountPaid} already received. Delete a payment first.`;
+    }
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) {
       toast.error('Please correct the highlighted fields.');
@@ -127,7 +135,12 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
       items: toPayloadItems(state.items),
       notes: state.notes.trim(),
       ...(isInvoice
-        ? { invoiceType: state.invoiceType, amountPaid }
+        ? {
+            invoiceType: state.invoiceType,
+            ...(!isEdit && amountPaid > 0
+              ? { payment: { amount: amountPaid, mode: state.paymentMode, reference: state.paymentReference.trim() } }
+              : {}),
+          }
         : { taxMode: state.taxMode, validUntil: state.validUntil, terms: state.terms.trim() }),
     };
 
@@ -233,6 +246,7 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
               set('items', items);
             }}
             showGst={showGst}
+            showStockWarning={isInvoice}
             errors={errors}
             onClearError={(key) => setErrors((prev) => ({ ...prev, [key]: undefined }))}
           />
@@ -265,14 +279,44 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
               supplyType={state.supplyType}
               {...(isInvoice ? { amountPaid, balanceDue: Math.max(totals.grandTotal - amountPaid, 0) } : {})}
             />
-            {isInvoice && (
-              <div className="mt-4 border-t border-slate-100 pt-4">
-                <TextField label="Amount received" name="amountPaid" type="number" min="0" step="0.01" inputMode="decimal" prefix="₹" value={state.amountPaid} onChange={(e) => set('amountPaid', e.target.value)} error={errors.amountPaid} />
-                <div className="mt-2 flex gap-2">
-                  <button type="button" className="btn-ghost px-2! py-1! text-xs" onClick={() => set('amountPaid', String(totals.grandTotal))}>Fully paid</button>
-                  <button type="button" className="btn-ghost px-2! py-1! text-xs" onClick={() => set('amountPaid', '0')}>Unpaid</button>
+            {isInvoice && !isEdit && (
+              <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                <TextField
+                  label="Payment received now"
+                  name="payment.amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  prefix="₹"
+                  value={state.paymentAmount}
+                  onChange={(e) => set('paymentAmount', e.target.value)}
+                  error={errors['payment.amount']}
+                  hint="Leave empty if nothing was received yet."
+                />
+                <div className="flex gap-2">
+                  <button type="button" className="btn-ghost px-2! py-1! text-xs" onClick={() => set('paymentAmount', String(totals.grandTotal))}>Fully paid</button>
+                  <button type="button" className="btn-ghost px-2! py-1! text-xs" onClick={() => set('paymentAmount', '')}>Not paid</button>
                 </div>
+                {amountPaid > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label htmlFor="field-paymentMode" className="mb-1.5 block text-sm font-medium text-slate-700">Mode</label>
+                      <select id="field-paymentMode" value={state.paymentMode} onChange={(e) => set('paymentMode', e.target.value)} className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-100">
+                        {PAYMENT_MODES.map((mode) => (
+                          <option key={mode} value={mode}>{mode}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <TextField label="Reference" name="paymentReference" value={state.paymentReference} onChange={(e) => set('paymentReference', e.target.value)} maxLength={60} placeholder="UTR / cheque no." />
+                  </div>
+                )}
               </div>
+            )}
+            {isInvoice && isEdit && (
+              <p className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">
+                Payments are recorded and deleted on the invoice page.
+              </p>
             )}
           </SectionCard>
 

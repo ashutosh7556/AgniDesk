@@ -24,6 +24,10 @@ export const BUSINESS = Object.freeze({
 /** Must match PRODUCT_CATEGORIES in backend/src/validators/product.validator.js. */
 export const PRODUCT_CATEGORIES = BUSINESS.categories;
 
+/** Must match EXPENSE_CATEGORIES / PAYMENT_MODES in backend/src/config/business.js. */
+export const EXPENSE_CATEGORIES = ['Product Purchases', 'Transportation', 'Installation', 'Maintenance', 'Other'];
+export const PAYMENT_MODES = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
+
 /** Must match GST_RATES / DEFAULT_GST_RATE in backend/src/config/business.js. */
 export const GST_RATES = [0, 5, 18, 40];
 export const DEFAULT_GST_RATE = 18;

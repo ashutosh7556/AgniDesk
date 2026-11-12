@@ -16,7 +16,8 @@ router.post('/', validate({ body: invoiceSchema }), invoiceController.create);
 router.get('/:id', validate({ params }), invoiceController.getById);
 router.get('/:id/pdf', validate({ params }), invoiceController.pdf);
 router.put('/:id', validate({ params, body: invoiceSchema }), invoiceController.update);
-router.patch('/:id/payment', validate({ params, body: paymentSchema }), invoiceController.updatePayment);
 router.post('/:id/cancel', validate({ params }), invoiceController.cancel);
+router.get('/:id/payments', validate({ params }), invoiceController.listPayments);
+router.post('/:id/payments', validate({ params, body: paymentSchema }), invoiceController.recordPayment);
 
 export default router;

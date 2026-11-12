@@ -45,7 +45,8 @@ export const productStore = new ExcelStore({
     { key: 'category', header: 'Category', type: 'string', width: 18 },
     { key: 'purchasePrice', header: 'Purchase Price', type: 'number', width: 15 },
     { key: 'sellingPrice', header: 'Selling Price', type: 'number', width: 15 },
-    { key: 'quantity', header: 'Available Quantity', type: 'number', width: 18 },
+    // Available stock is CALCULATED (opening + adjustments − invoiced), never stored.
+    { key: 'openingStock', header: 'Opening Stock', type: 'number', width: 15, aliases: ['Available Quantity', 'quantity'] },
     { key: 'lowStockThreshold', header: 'Low Stock Alert At', type: 'number', width: 18 },
     // Added in Phase 3; existing rows read the defaults until edited.
     { key: 'hsnCode', header: 'HSN/SAC Code', type: 'string', width: 14 },
@@ -104,8 +105,56 @@ export const invoiceStore = new ExcelStore({
     ...billingDocumentColumns.slice(0, 2),
     { key: 'invoiceType', header: 'Invoice Type', type: 'string', width: 12 },
     { key: 'status', header: 'Status', type: 'string', width: 11, default: 'active' },
+    // Amount paid is CALCULATED from payments.xlsx, never stored here.
     ...billingDocumentColumns.slice(2),
-    { key: 'amountPaid', header: 'Amount Paid', type: 'number', width: 14 },
+  ],
+});
+
+/** Manual stock changes (purchases received, corrections). Sales come from invoices. */
+export const stockMovementStore = new ExcelStore({
+  dataDir: env.dataDir,
+  fileName: 'stock_movements.xlsx',
+  sheetName: 'Stock Movements',
+  idPrefix: 'STK',
+  columns: [
+    { key: 'date', header: 'Date', type: 'string', width: 12 },
+    { key: 'productId', header: 'Product ID', type: 'string', width: 12 },
+    { key: 'productName', header: 'Product Name', type: 'string', width: 32 },
+    { key: 'type', header: 'Type', type: 'string', width: 12 }, // purchase | adjustment
+    { key: 'quantity', header: 'Quantity (+/-)', type: 'number', width: 14 },
+    { key: 'note', header: 'Note', type: 'string', width: 40 },
+  ],
+});
+
+export const paymentStore = new ExcelStore({
+  dataDir: env.dataDir,
+  fileName: 'payments.xlsx',
+  sheetName: 'Payments',
+  idPrefix: 'PAY',
+  columns: [
+    { key: 'date', header: 'Date', type: 'string', width: 12 },
+    { key: 'invoiceId', header: 'Invoice ID', type: 'string', width: 12 },
+    { key: 'invoiceNumber', header: 'Invoice Number', type: 'string', width: 18 },
+    { key: 'customerId', header: 'Customer ID', type: 'string', width: 12 },
+    { key: 'customerName', header: 'Customer Name', type: 'string', width: 28 },
+    { key: 'amount', header: 'Amount', type: 'number', width: 14 },
+    { key: 'mode', header: 'Mode', type: 'string', width: 14 },
+    { key: 'reference', header: 'Reference', type: 'string', width: 22 },
+    { key: 'note', header: 'Note', type: 'string', width: 30 },
+  ],
+});
+
+export const expenseStore = new ExcelStore({
+  dataDir: env.dataDir,
+  fileName: 'expenses.xlsx',
+  sheetName: 'Expenses',
+  idPrefix: 'EXP',
+  columns: [
+    { key: 'date', header: 'Date', type: 'string', width: 12 },
+    { key: 'title', header: 'Expense Title', type: 'string', width: 32 },
+    { key: 'category', header: 'Category', type: 'string', width: 20 },
+    { key: 'amount', header: 'Amount', type: 'number', width: 14 },
+    { key: 'description', header: 'Description', type: 'string', width: 44 },
   ],
 });
 
@@ -117,4 +166,7 @@ export const initStores = () =>
     productStore.init(),
     quotationStore.init(),
     invoiceStore.init(),
+    stockMovementStore.init(),
+    paymentStore.init(),
+    expenseStore.init(),
   ]);

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { listQuerySchema, optionalText } from './common.js';
 import { gstRateSchema, hsnSchema, money } from './product.validator.js';
-import { DEFAULT_GST_RATE } from '../config/business.js';
+import { DEFAULT_GST_RATE, PAYMENT_MODES } from '../config/business.js';
 import { isValidIsoDate } from '../utils/dates.js';
 
 const isoDate = (label) =>
@@ -54,14 +54,31 @@ export const quotationSchema = z
     message: 'Validity date cannot be before the quotation date.',
   });
 
+export const paymentSchema = z.object({
+  date: isoDate('Payment date'),
+  amount: money('Amount').refine((value) => value > 0, 'Amount must be more than 0.'),
+  mode: z.enum(PAYMENT_MODES, { error: 'Select a payment mode.' }),
+  reference: optionalText(60),
+  note: optionalText(300),
+});
+
 export const invoiceSchema = z.object({
   ...baseDocumentFields,
   invoiceType: z.enum(['gst', 'non-gst'], { error: 'Choose GST or Non-GST invoice.' }),
-  amountPaid: money('Amount paid').optional().default(0),
+  // Optional payment received at the time of creating the invoice (create only).
+  payment: z
+    .object({
+      amount: money('Amount received').refine((value) => value > 0, 'Amount must be more than 0.'),
+      mode: z.enum(PAYMENT_MODES, { error: 'Select a payment mode.' }),
+      reference: optionalText(60),
+    })
+    .optional(),
 });
 
-export const paymentSchema = z.object({
-  amountPaid: money('Amount paid'),
+export const paymentListQuerySchema = listQuerySchema.extend({
+  mode: z.enum(PAYMENT_MODES).optional(),
+  from: isoDate('From').optional(),
+  to: isoDate('To').optional(),
 });
 
 export const documentListQuerySchema = listQuerySchema.extend({
