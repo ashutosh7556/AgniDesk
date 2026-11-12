@@ -10,6 +10,9 @@ import invoiceRoutes from './invoice.routes.js';
 import paymentRoutes from './payment.routes.js';
 import expenseRoutes from './expense.routes.js';
 import serviceRoutes from './service.routes.js';
+import settingsRoutes from './settings.routes.js';
+import reportRoutes from './report.routes.js';
+import backupRoutes from './backup.routes.js';
 
 /** Mounts all API route modules under /api. */
 const router = Router();
@@ -26,6 +29,9 @@ router.use('/invoices', requireAuth, invoiceRoutes);
 router.use('/payments', requireAuth, paymentRoutes);
 router.use('/expenses', requireAuth, expenseRoutes);
 router.use('/services', requireAuth, serviceRoutes);
+router.use('/settings', requireAuth, settingsRoutes);
+router.use('/reports', requireAuth, reportRoutes);
+router.use('/backup', requireAuth, backupRoutes);
 router.get('/dashboard', requireAuth, async (_req, res) => {
   res.json({ success: true, data: await getDashboard() });
 });

@@ -77,3 +77,24 @@ export async function ensureOwnerAccount() {
   await userStore.create({ name, email, passwordHash: await hashPassword(password), role: 'owner' });
   console.log(`[auth] Owner account created for ${email}. You can now remove OWNER_PASSWORD from .env.`);
 }
+
+/** Owner profile (name / login email). */
+export async function updateProfile(userId, { name, email }) {
+  const users = await userStore.findAll();
+  if (users.some((u) => u.id !== userId && u.email.toLowerCase() === email)) {
+    throw new ApiError(400, 'Please correct the highlighted fields.', [{ field: 'email', message: 'This email is already used by another account.' }]);
+  }
+  const updated = await userStore.update(userId, { name, email });
+  if (!updated) throw new ApiError(401, 'Account no longer exists.');
+  return toPublicUser(updated);
+}
+
+/** Requires the current password; stores only the bcrypt hash of the new one. */
+export async function changePassword(userId, { currentPassword, newPassword }) {
+  const user = await userStore.findById(userId);
+  if (!user) throw new ApiError(401, 'Account no longer exists.');
+  if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+    throw new ApiError(400, 'Please correct the highlighted fields.', [{ field: 'currentPassword', message: 'Current password is incorrect.' }]);
+  }
+  await userStore.update(userId, { passwordHash: await hashPassword(newPassword) });
+}

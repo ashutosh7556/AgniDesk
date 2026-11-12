@@ -43,7 +43,9 @@ const buildUrl = (path, query) => {
 export async function apiRequest(path, { method = 'GET', body, query, signal, responseType = 'json' } = {}) {
   const token = tokenStorage.get();
   const headers = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // Files (Blob/File) are sent as-is, everything else as JSON.
+  const isFile = typeof Blob !== 'undefined' && body instanceof Blob;
+  if (body !== undefined) headers['Content-Type'] = isFile ? 'application/octet-stream' : 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response;
@@ -52,7 +54,7 @@ export async function apiRequest(path, { method = 'GET', body, query, signal, re
       method,
       signal,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isFile ? body : JSON.stringify(body),
     });
   } catch (error) {
     if (error.name === 'AbortError') throw error;

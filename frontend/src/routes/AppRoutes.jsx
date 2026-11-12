@@ -18,12 +18,14 @@ import ExpensesPage from '../pages/expenses/ExpensesPage.jsx';
 import ServicesPage from '../pages/services/ServicesPage.jsx';
 import ServiceFormPage from '../pages/services/ServiceFormPage.jsx';
 import ServiceDetailPage from '../pages/services/ServiceDetailPage.jsx';
+import ReportsPage from '../pages/reports/ReportsPage.jsx';
+import SettingsPage from '../pages/settings/SettingsPage.jsx';
 import ComingSoonPage from '../pages/ComingSoonPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 import { NAV_ITEMS } from '../constants/navigation.js';
 
 /** Modules not built yet (later phases) render a placeholder so navigation never dead-ends. */
-const CURRENT_PHASE = 5;
+const CURRENT_PHASE = 6;
 const upcomingModules = NAV_ITEMS.filter((item) => item.phase > CURRENT_PHASE);
 
 export default function AppRoutes() {
@@ -54,6 +56,8 @@ export default function AppRoutes() {
           <Route path="/services/new" element={<ServiceFormPage />} />
           <Route path="/services/:id" element={<ServiceDetailPage />} />
           <Route path="/services/:id/edit" element={<ServiceFormPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           {upcomingModules.map((item) => (
             <Route
               key={item.path}

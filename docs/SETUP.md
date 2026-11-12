@@ -157,6 +157,19 @@ Protected routes need `Authorization: Bearer <token>`.
 - Needs internet. If Google Sheets is unreachable, customer screens show an error; other modules keep working
   except where they need customer details (e.g. creating an invoice).
 
+## Settings, reports and backups
+
+- **Settings** (`settings.xlsx`): business details, GSTIN/state, default GST rate, quotation validity,
+  default terms and invoice notes. Used immediately by PDFs and forms. `BUSINESS_*` env vars are only
+  first-time defaults. Owner profile and password are changed under Settings → Profile & Password.
+- **Reports** (`GET /api/reports/:type?from=&to=`, Excel via `/export`): `sales`, `profit-loss`,
+  `pending-payments`, `payments`, `product-sales`, `inventory`, `services`, `expenses`.
+- **Backup** (`GET /api/backup`): one .xlsx with every entity (customers read from Google Sheets).
+  Login accounts are never included.
+- **Restore** (`POST /api/backup/restore`, raw .xlsx body, `?customers=false` to keep Google Sheets
+  customers): validates the whole file first, saves a snapshot of the current data to `BACKUP_DIR`
+  (`backend/backups/`), then replaces each entity found in the file. To undo a restore, restore that snapshot.
+
 ## Excel storage notes
 
 - Each write is serialised per file and written atomically (temp file + rename), so concurrent

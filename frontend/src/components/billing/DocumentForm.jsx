@@ -9,10 +9,13 @@ import TotalsSummary from './TotalsSummary.jsx';
 import { fetchCustomerOptions, toCustomerOption } from './pickerOptions.js';
 import { calculateDocument, detectSupplyType } from '../../utils/billing.js';
 import { addDays, todayIST } from '../../utils/dates.js';
-import { PAYMENT_MODES, SELLER_STATE_CODE } from '../../constants/business.js';
+import { PAYMENT_MODES } from '../../constants/business.js';
+import { useSettings } from '../../hooks/useSettings.js';
 import { useToast } from '../../hooks/useToast.js';
+import { LoadingState } from '../ui/States.jsx';
 
 /** Default terms for new quotations (editable per quotation). */
+/** Used only if no default terms are saved in Settings. */
 const DEFAULT_TERMS = [
   'Prices are valid until the validity date mentioned above.',
   '50% advance with purchase order; balance on delivery/installation.',
@@ -64,10 +67,11 @@ function validate(state, kind) {
  * initialCustomer: customer record to preselect (e.g. from ?customerId=)
  * onSubmit(payload): returns a promise; throws ApiRequestError on failure
  */
-export default function DocumentForm({ kind, document, initialCustomer, onSubmit, cancelTo }) {
+function DocumentFormInner({ kind, document, initialCustomer, onSubmit, cancelTo }) {
   const isEdit = Boolean(document);
   const isInvoice = kind === 'invoice';
   const toast = useToast();
+  const { settings } = useSettings();
 
   const [state, setState] = useState(() => {
     const today = todayIST();
@@ -75,13 +79,13 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
     return {
       customer: sourceCustomer ? toCustomerOption(sourceCustomer) : null,
       date: document?.date ?? today,
-      validUntil: document?.validUntil ?? addDays(today, 15),
+      validUntil: document?.validUntil ?? addDays(today, settings.quotationValidityDays || 15),
       taxMode: document?.taxMode ?? 'gst',
       invoiceType: document?.invoiceType ?? 'gst',
-      supplyType: document?.supplyType ?? detectSupplyType(sourceCustomer?.gstNumber, SELLER_STATE_CODE),
-      items: document?.items?.length ? document.items.map(toEditableLine) : [createLineItem()],
-      notes: document?.notes ?? '',
-      terms: document?.terms ?? (isInvoice ? '' : DEFAULT_TERMS),
+      supplyType: document?.supplyType ?? detectSupplyType(sourceCustomer?.gstNumber, settings.stateCode),
+      items: document?.items?.length ? document.items.map(toEditableLine) : [createLineItem({ gstRate: String(settings.defaultGstRate) })],
+      notes: document?.notes ?? (isInvoice ? settings.defaultInvoiceNotes : ''),
+      terms: document?.terms ?? (isInvoice ? '' : settings.defaultQuotationTerms || DEFAULT_TERMS),
       paymentAmount: '',
       paymentMode: 'Cash',
       paymentReference: '',
@@ -107,7 +111,7 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
     setState((prev) => ({
       ...prev,
       customer: option,
-      supplyType: detectSupplyType(option.data.gstNumber, SELLER_STATE_CODE),
+      supplyType: detectSupplyType(option.data.gstNumber, settings.stateCode),
     }));
     setErrors((prev) => ({ ...prev, customerId: undefined }));
   };
@@ -247,6 +251,7 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
             }}
             showGst={showGst}
             showStockWarning={isInvoice}
+            defaultGstRate={settings.defaultGstRate}
             errors={errors}
             onClearError={(key) => setErrors((prev) => ({ ...prev, [key]: undefined }))}
           />
@@ -331,4 +336,10 @@ export default function DocumentForm({ kind, document, initialCustomer, onSubmit
       </div>
     </form>
   );
+}
+
+/** Waits for saved settings (defaults for terms, validity, GST state) before building the form state. */
+export default function DocumentForm(props) {
+  const { isLoaded } = useSettings();
+  return isLoaded ? <DocumentFormInner {...props} /> : <LoadingState />;
 }

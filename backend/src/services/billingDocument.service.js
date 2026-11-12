@@ -1,5 +1,5 @@
 import { customerStore } from '../storage/stores.js';
-import { BUSINESS } from '../config/business.js';
+import { getBusinessProfile } from './settings.service.js';
 import { ApiError } from '../utils/ApiError.js';
 import { calculateDocument, detectSupplyType } from '../utils/billing.js';
 import { financialYear } from '../utils/dates.js';
@@ -18,7 +18,7 @@ export async function buildBillingDocument(input, taxMode) {
     ]);
   }
 
-  const supplyType = input.supplyType ?? detectSupplyType(customer.gstNumber, BUSINESS.stateCode);
+  const supplyType = input.supplyType ?? detectSupplyType(customer.gstNumber, getBusinessProfile().stateCode);
   const { items, totals } = calculateDocument({ items: input.items, taxMode, supplyType });
 
   return {

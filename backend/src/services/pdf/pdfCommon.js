@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { BUSINESS } from '../../config/business.js';
+import { getBusinessProfile } from '../settings.service.js';
 
 /**
  * Shared branding and layout for every AgniDesk PDF
@@ -33,6 +33,7 @@ export const formatDate = (iso) =>
 
 /** Navy header band with business details (left) and document title/number/date (right). */
 export function drawBrandHeader(pdf, { title, number, date }) {
+  const BUSINESS = getBusinessProfile();
   pdf.rect(0, 0, PAGE.width, 112).fill(COLORS.navy);
   // Brand accent stripe: fire red -> orange -> gold
   const stripe = PAGE.width / 3;
@@ -42,13 +43,13 @@ export function drawBrandHeader(pdf, { title, number, date }) {
 
   const left = PAGE.margin;
   pdf.fillColor('#ffffff').font('Helvetica-Bold').fontSize(18).text(BUSINESS.name, left, 26, { width: 320 });
-  pdf.fillColor(COLORS.gold).font('Helvetica-Bold').fontSize(8.5).text(BUSINESS.tagline.toUpperCase(), left, 49, {
+  pdf.fillColor(COLORS.gold).font('Helvetica-Bold').fontSize(8.5).text((BUSINESS.tagline || '').toUpperCase(), left, 49, {
     width: 320,
     characterSpacing: 1.2,
   });
   pdf.fillColor(COLORS.softText).font('Helvetica').fontSize(8);
   pdf.text(BUSINESS.address, left, 66, { width: 320 });
-  pdf.text(`${BUSINESS.phones.join('  |  ')}  |  ${BUSINESS.email}`, left, pdf.y + 2, { width: 340 });
+  pdf.text([BUSINESS.phones.join('  |  '), BUSINESS.email].filter(Boolean).join('  |  '), left, pdf.y + 2, { width: 340 });
   if (BUSINESS.gstin) {
     pdf.fillColor('#ffffff').font('Helvetica-Bold').text(`GSTIN: ${BUSINESS.gstin}`, left, pdf.y + 2, { width: 320 });
   }
@@ -66,6 +67,7 @@ export function drawBrandHeader(pdf, { title, number, date }) {
 
 /** "For AGNI SETU FIRE SAFETY / Authorised Signatory" block, right-aligned. */
 export function drawSignature(pdf, startY, label = 'Authorised Signatory') {
+  const BUSINESS = getBusinessProfile();
   let y = startY + 10;
   if (y + 60 > BOTTOM_LIMIT) {
     pdf.addPage();
@@ -106,6 +108,7 @@ export function drawFooters(pdf) {
  * @param {(pdf: PDFKit.PDFDocument) => void} draw
  */
 export function renderPdf(info, draw) {
+  const BUSINESS = getBusinessProfile();
   return new Promise((resolve, reject) => {
     const pdf = new PDFDocument({
       size: 'A4',

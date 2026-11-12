@@ -10,7 +10,7 @@ import { completeService, deleteService, getCertificatePdf, getService } from '.
 import { useFetch } from '../../hooks/useFetch.js';
 import { useToast } from '../../hooks/useToast.js';
 import { formatDate, formatMoney } from '../../utils/format.js';
-import { BUSINESS } from '../../constants/business.js';
+import { messageSignature, useSettings } from '../../hooks/useSettings.js';
 
 function Row({ label, children }) {
   return (
@@ -25,6 +25,7 @@ export default function ServiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { settings } = useSettings();
   const [isCompleting, setIsCompleting] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -71,7 +72,7 @@ export default function ServiceDetailPage() {
     `Dear ${customer.name ?? service.customerName},\n\nPlease find the service certificate ${service.certificateNumber} for ` +
     `${service.serviceType} carried out on ${formatDate(service.serviceDate)}.` +
     (service.nextDueDate ? ` Next service is due on ${formatDate(service.nextDueDate)}.` : '') +
-    `\n\nRegards,\n${BUSINESS.name}\n${BUSINESS.phones[0]}`;
+    messageSignature(settings);
 
   return (
     <div className="space-y-6">

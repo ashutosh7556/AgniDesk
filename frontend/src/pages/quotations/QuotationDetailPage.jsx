@@ -10,12 +10,13 @@ import { deleteQuotation, getQuotation, getQuotationPdf } from '../../services/q
 import { useFetch } from '../../hooks/useFetch.js';
 import { useToast } from '../../hooks/useToast.js';
 import { formatDate, formatMoney } from '../../utils/format.js';
-import { BUSINESS } from '../../constants/business.js';
+import { messageSignature, useSettings } from '../../hooks/useSettings.js';
 
 export default function QuotationDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { settings } = useSettings();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { data: quotation, error, isLoading } = useFetch((signal) => getQuotation(id, signal), [id]);
@@ -45,7 +46,7 @@ export default function QuotationDetailPage() {
   const whatsappMessage =
     `Dear ${quotation.customer.name},\n\nPlease find our quotation ${quotation.number} dated ${formatDate(quotation.date)} ` +
     `for ${formatMoney(quotation.grandTotal)}, valid until ${formatDate(quotation.validUntil)}.\n\n` +
-    `Regards,\n${BUSINESS.name}\n${BUSINESS.phones[0]}`;
+    messageSignature(settings).trimStart();
 
   return (
     <div className="space-y-6">

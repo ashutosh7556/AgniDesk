@@ -1,7 +1,7 @@
 /**
- * Seller profile printed on quotations and invoices.
- * Phase 6 (Settings) will make these editable; until then GSTIN and state
- * come from .env so they are not hard-coded.
+ * DEFAULT seller profile. The live values are edited in Settings and read via
+ * getBusinessProfile() (services/settings.service.js); these defaults (and the
+ * BUSINESS_* env vars) are used only until the owner saves Settings.
  */
 export const BUSINESS = Object.freeze({
   name: 'AGNI SETU FIRE SAFETY',

@@ -5,7 +5,8 @@ import { SelectField, TextField } from '../ui/FormControls.jsx';
 import { createProduct, updateProduct } from '../../services/productService.js';
 import { validateProduct } from '../../utils/validation.js';
 import { formatCurrency } from '../../utils/format.js';
-import { DEFAULT_GST_RATE, GST_RATES, PRODUCT_CATEGORIES } from '../../constants/business.js';
+import { GST_RATES, PRODUCT_CATEGORIES } from '../../constants/business.js';
+import { useSettings } from '../../hooks/useSettings.js';
 import { useToast } from '../../hooks/useToast.js';
 
 const EMPTY_FORM = {
@@ -16,7 +17,7 @@ const EMPTY_FORM = {
   openingStock: '0',
   lowStockThreshold: '5',
   hsnCode: '',
-  gstRate: String(DEFAULT_GST_RATE),
+  gstRate: '18',
 };
 
 // Numbers are edited as strings so users can clear a field while typing.
@@ -39,16 +40,17 @@ const toPayload = (form, isEdit) => ({
 export default function ProductFormModal({ isOpen, product, onClose, onSaved }) {
   const isEdit = Boolean(product);
   const toast = useToast();
+  const { settings } = useSettings();
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setForm(toForm(product));
+      setForm(product ? toForm(product) : { ...EMPTY_FORM, gstRate: String(settings.defaultGstRate) });
       setErrors({});
     }
-  }, [isOpen, product]);
+  }, [isOpen, product, settings.defaultGstRate]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;

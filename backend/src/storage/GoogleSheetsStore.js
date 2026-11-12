@@ -139,6 +139,34 @@ export class GoogleSheetsStore {
     });
   }
 
+  /**
+   * Replaces all data rows below the header (used by backup restore).
+   * The header row is kept; everything under it is cleared first.
+   */
+  async replaceAll(records) {
+    return this.#withLock(async () => {
+      const { headers } = await this.#load({ fresh: true });
+      const lastColumn = columnLetter(Math.max(headers.length, 26) - 1);
+      await this.#call((sheets) =>
+        sheets.spreadsheets.values.clear({
+          spreadsheetId: googleSheetsConfig.spreadsheetId,
+          range: `${this.#quotedName()}!A2:${lastColumn}`,
+        }),
+      );
+      if (records.length) {
+        await this.#call((sheets) =>
+          sheets.spreadsheets.values.update({
+            spreadsheetId: googleSheetsConfig.spreadsheetId,
+            range: `${this.#quotedName()}!A2`,
+            valueInputOption: 'RAW',
+            requestBody: { values: records.map((record) => this.#toRow(record, headers)) },
+          }),
+        );
+      }
+      this.cache = null;
+    });
+  }
+
   /** Returns true if a row was deleted. */
   async delete(id) {
     return this.#withLock(async () => {

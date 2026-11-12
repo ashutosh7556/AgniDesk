@@ -192,6 +192,18 @@ export const serviceStore = new ExcelStore({
   ],
 });
 
+/** Business settings as key/value rows (one row per setting). */
+export const settingsStore = new ExcelStore({
+  dataDir: env.dataDir,
+  fileName: 'settings.xlsx',
+  sheetName: 'Settings',
+  idPrefix: 'SET',
+  columns: [
+    { key: 'key', header: 'Setting', type: 'string', width: 26 },
+    { key: 'value', header: 'Value', type: 'string', width: 80 },
+  ],
+});
+
 /** Ensures the data folder and every workbook exist. Called once at startup. */
 export const initStores = () =>
   Promise.all([
@@ -204,4 +216,5 @@ export const initStores = () =>
     paymentStore.init(),
     expenseStore.init(),
     serviceStore.init(),
+    settingsStore.init(),
   ]);

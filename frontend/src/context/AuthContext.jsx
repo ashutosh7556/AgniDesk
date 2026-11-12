@@ -55,9 +55,12 @@ export function AuthProvider({ children }) {
     setStatus('anonymous');
   }, []);
 
+  /** After the owner edits their profile in Settings. */
+  const updateUser = useCallback((nextUser) => setUser(nextUser), []);
+
   const value = useMemo(
-    () => ({ user, status, isAuthenticated: status === 'authenticated', login, logout }),
-    [user, status, login, logout],
+    () => ({ user, status, isAuthenticated: status === 'authenticated', login, logout, updateUser }),
+    [user, status, login, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

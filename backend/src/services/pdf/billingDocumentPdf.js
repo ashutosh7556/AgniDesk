@@ -1,5 +1,5 @@
 import { amountInWords } from '../../utils/amountInWords.js';
-import { BUSINESS } from '../../config/business.js';
+import { getBusinessProfile } from '../settings.service.js';
 import {
   BOTTOM_LIMIT,
   COLORS,
@@ -91,7 +91,8 @@ function drawParties(pdf, kind, document) {
   if (document.taxMode === 'gst') {
     rows.push(['Supply Type', document.supplyType === 'inter' ? 'Inter-state (IGST)' : 'Intra-state (CGST+SGST)']);
     if (document.supplyType !== 'inter') {
-      rows.push(['Place of Supply', `${BUSINESS.stateName} (${BUSINESS.stateCode})`]);
+      const seller = getBusinessProfile();
+      rows.push(['Place of Supply', `${seller.stateName} (${seller.stateCode})`]);
     } else if (customer.gstNumber) {
       rows.push(['Place of Supply', `State code ${customer.gstNumber.slice(0, 2)}`]);
     }

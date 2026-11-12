@@ -2,17 +2,17 @@ import { Link } from 'react-router';
 import { CalendarCheck, CalendarPlus, MessageCircle } from 'lucide-react';
 import { DueBadge } from './ServiceBadges.jsx';
 import { formatDate } from '../../utils/format.js';
-import { BUSINESS } from '../../constants/business.js';
+import { messageSignature, useSettings } from '../../hooks/useSettings.js';
 
 /** Pre-filled WhatsApp text reminding the customer about a due/scheduled service. */
-export const reminderWhatsAppUrl = (reminder) => {
+export const reminderWhatsAppUrl = (reminder, settings) => {
   const when = formatDate(reminder.date);
   const text =
     reminder.kind === 'scheduled'
       ? `Dear ${reminder.customerName},\n\nThis is a reminder that your ${reminder.serviceType} is scheduled on ${when}.`
       : `Dear ${reminder.customerName},\n\nYour ${reminder.serviceType} ${reminder.daysLeft < 0 ? 'was due' : 'is due'} on ${when}. Please let us know a convenient date for the service visit.`;
   const phone = reminder.customerMobile ? `91${reminder.customerMobile}` : '';
-  return `https://wa.me/${phone}?text=${encodeURIComponent(`${text}\n\nRegards,\n${BUSINESS.name}\n${BUSINESS.phones[0]}`)}`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text + messageSignature(settings))}`;
 };
 
 /**
@@ -20,6 +20,7 @@ export const reminderWhatsAppUrl = (reminder) => {
  * reminders: from GET /api/services/reminders
  */
 export default function RemindersList({ reminders, compact = false }) {
+  const { settings } = useSettings();
   if (!reminders.length) {
     return <p className="py-6 text-center text-sm text-slate-500">No services due in the next 30 days.</p>;
   }
@@ -44,7 +45,7 @@ export default function RemindersList({ reminders, compact = false }) {
           </div>
           {!compact && (
             <div className="flex shrink-0 gap-2 sm:ml-4">
-              <a href={reminderWhatsAppUrl(r)} target="_blank" rel="noopener noreferrer" className="btn-secondary px-3! py-1.5! text-xs text-emerald-700!">
+              <a href={reminderWhatsAppUrl(r, settings)} target="_blank" rel="noopener noreferrer" className="btn-secondary px-3! py-1.5! text-xs text-emerald-700!">
                 <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
                 Remind
               </a>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import Sidebar from '../components/layout/Sidebar.jsx';
 import Header from '../components/layout/Header.jsx';
+import { SettingsProvider } from '../context/SettingsContext.jsx';
 
 /** App shell: fixed sidebar on desktop, slide-in drawer on mobile/tablet. */
 export default function DashboardLayout() {
@@ -14,6 +15,7 @@ export default function DashboardLayout() {
   }, [location.pathname]);
 
   return (
+    <SettingsProvider>
     <div className="min-h-screen">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="lg:pl-64">
@@ -23,5 +25,6 @@ export default function DashboardLayout() {
         </main>
       </div>
     </div>
+    </SettingsProvider>
   );
 }

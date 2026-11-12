@@ -11,11 +11,12 @@ import { cancelInvoice, getInvoice, getInvoicePdf } from '../../services/invoice
 import { useFetch } from '../../hooks/useFetch.js';
 import { useToast } from '../../hooks/useToast.js';
 import { formatDate, formatMoney } from '../../utils/format.js';
-import { BUSINESS } from '../../constants/business.js';
+import { messageSignature, useSettings } from '../../hooks/useSettings.js';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams();
   const toast = useToast();
+  const { settings } = useSettings();
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const { data: invoice, error, isLoading, reload } = useFetch((signal) => getInvoice(id, signal), [id]);
@@ -51,7 +52,7 @@ export default function InvoiceDetailPage() {
     `Dear ${invoice.customer.name},\n\nPlease find invoice ${invoice.number} dated ${formatDate(invoice.date)} ` +
     `for ${formatMoney(invoice.grandTotal)}.` +
     (invoice.balanceDue > 0 ? ` Balance due: ${formatMoney(invoice.balanceDue)}.` : ' Thank you for your payment.') +
-    `\n\nRegards,\n${BUSINESS.name}\n${BUSINESS.phones[0]}`;
+    messageSignature(settings);
 
   return (
     <div className="space-y-6">

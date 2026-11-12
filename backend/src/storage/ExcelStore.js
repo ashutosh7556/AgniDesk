@@ -135,6 +135,12 @@ export class ExcelStore {
     });
   }
 
+  /** Replaces every row (used by backup restore). Rows must include id/createdAt/updatedAt. */
+  async replaceAll(rows) {
+    await fs.mkdir(path.dirname(this.filePath), { recursive: true });
+    return fileLocks.run(this.filePath, () => this.#writeRows(rows));
+  }
+
   /** Returns true if a record was deleted. */
   async delete(id) {
     return this.#mutate((rows) => {

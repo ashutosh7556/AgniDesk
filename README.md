@@ -4,7 +4,7 @@ Business management system for **Agni Setu Fire Safety** — *Where Safety Meets
 
 Manages customers, inventory, quotations, GST / non-GST invoices, expenses, fire safety services, payments and reports.
 
-> **Status: Phase 5** — login, customers, products with calculated stock, quotations, GST / Non-GST invoices (PDF, print, WhatsApp), payments, expenses, fire safety services with certificates and reminders, live dashboard.
+> **Status: Phase 6** — customers (Google Sheets), products & stock, quotations, GST / Non-GST invoices, payments, expenses, services & certificates, dashboard, reports with Excel export, settings and backup/restore.
 
 ## Tech stack
 
@@ -36,3 +36,7 @@ In development, Vite proxies `/api/*` to the backend, so no CORS setup is needed
 | GET/POST | `/api/products/:id/stock` | Stock history / adjust stock |
 | CRUD   | `/api/services` | Service records (+ `/reminders`, `/:id/complete`, `/:id/certificate`) |
 | GET    | `/api/dashboard` | Dashboard figures |
+| GET/PUT | `/api/settings` | Business & document settings |
+| PUT    | `/api/auth/profile`, `/api/auth/password` | Owner profile / change password |
+| GET    | `/api/reports/:type` (+ `/export`) | Reports (JSON / Excel) |
+| GET/POST | `/api/backup`, `/api/backup/restore` | Full backup download / restore |

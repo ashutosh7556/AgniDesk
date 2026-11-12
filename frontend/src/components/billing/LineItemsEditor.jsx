@@ -54,7 +54,7 @@ function Field({ id, label, error, children, className = '' }) {
  * items: editable lines; computed: lines from calculateDocument (same order).
  * errors: keyed like "items.0.quantity"; onClearError(key) clears one as the user edits.
  */
-export default function LineItemsEditor({ items, computed, onChange, showGst, showStockWarning = false, errors = {}, onClearError }) {
+export default function LineItemsEditor({ items, computed, onChange, showGst, showStockWarning = false, defaultGstRate = DEFAULT_GST_RATE, errors = {}, onClearError }) {
   const update = (index, field, value) => {
     onChange(items.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
     const errorKey = `items.${index}.${field}`;
@@ -163,7 +163,7 @@ export default function LineItemsEditor({ items, computed, onChange, showGst, sh
           emptyText="No products found. Add products in Products & Inventory."
           className="sm:flex-1"
         />
-        <button type="button" className="btn-secondary" onClick={() => onChange([...items, createLineItem()])}>
+        <button type="button" className="btn-secondary" onClick={() => onChange([...items, createLineItem({ gstRate: String(defaultGstRate) })])}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add custom item / service
         </button>
