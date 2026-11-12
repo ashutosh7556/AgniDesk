@@ -141,7 +141,7 @@ export default function ServicesPage() {
       />
 
       {s && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <StatCard label="Overdue" value={s.overdue} icon={AlertTriangle} tone={s.overdue ? 'fire' : 'navy'} hint="Past next due date" />
           <StatCard label="Due in 30 days" value={s.dueSoon} icon={Clock} tone="gold" hint="Incl. scheduled visits" />
           <StatCard label="Scheduled" value={s.scheduled} icon={CalendarClock} tone="navy" />

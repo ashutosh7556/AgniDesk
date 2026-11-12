@@ -35,7 +35,7 @@ export default function CustomerDetailPage() {
   const { data: customer, error, isLoading, reload } = useFetch((signal) => getCustomer(id, signal), [id]);
 
   const backLink = (
-    <Link to="/customers" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800">
+    <Link to="/customers" className="-my-2 inline-flex min-h-10 items-center gap-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">
       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
       Customers
     </Link>

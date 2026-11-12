@@ -39,7 +39,27 @@ export default function DocumentView({ document, kind, sidebarExtra }) {
         </SectionCard>
 
         <SectionCard title="Items & Services" subtitle={`${document.items.length} item${document.items.length === 1 ? '' : 's'}`}>
-          <div className="-mx-5 -my-5 overflow-x-auto">
+          {/* Phones: one card per line item (no sideways scrolling) */}
+          <ul className="-mx-5 -my-5 divide-y divide-slate-100 sm:hidden">
+            {document.items.map((item, index) => (
+              <li key={index} className="px-5 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 text-sm font-medium text-slate-800">
+                    <span className="mr-1 text-slate-400">{index + 1}.</span>
+                    {item.description}
+                  </p>
+                  <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{formatMoney(item.total)}</p>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {item.quantity} × {formatMoney(item.rate)}
+                  {item.discountPercent ? ` · ${item.discountPercent}% off` : ''}
+                  {isGst ? ` · GST ${item.gstRate}%` : ''}
+                  {item.hsnCode ? ` · HSN ${item.hsnCode}` : ''}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="-mx-5 -my-5 hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>

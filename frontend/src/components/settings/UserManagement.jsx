@@ -157,7 +157,7 @@ export default function UserManagement() {
       title="Admin users"
       subtitle={data ? `${data.users.length} of ${data.maxAdmins} admins · every admin has full access` : 'People who can log in to AgniDesk'}
       action={
-        <button type="button" className="btn-primary px-3! py-1.5! text-xs" onClick={() => setModal({ type: 'add' })} disabled={!data || atLimit} title={atLimit ? `Maximum ${data.maxAdmins} admins` : undefined}>
+        <button type="button" className="btn-primary min-h-9 px-3! py-1.5! text-xs" onClick={() => setModal({ type: 'add' })} disabled={!data || atLimit} title={atLimit ? `Maximum ${data.maxAdmins} admins` : undefined}>
           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           Add admin
         </button>
@@ -187,11 +187,11 @@ export default function UserManagement() {
                   </div>
                   {!isMe && (
                     <div className="flex gap-2">
-                      <button type="button" className="btn-secondary px-3! py-1.5! text-xs" onClick={() => setModal({ type: 'reset', user: u })}>
+                      <button type="button" className="btn-secondary min-h-9 px-3! py-1.5! text-xs" onClick={() => setModal({ type: 'reset', user: u })}>
                         <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
                         Reset password
                       </button>
-                      <button type="button" className="btn-secondary px-3! py-1.5! text-xs text-fire-600! hover:bg-fire-50!" onClick={() => setUserToDelete(u)}>
+                      <button type="button" className="btn-secondary min-h-9 px-3! py-1.5! text-xs text-fire-600! hover:bg-fire-50!" onClick={() => setUserToDelete(u)}>
                         <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         Remove
                       </button>

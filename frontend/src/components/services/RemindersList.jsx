@@ -45,17 +45,17 @@ export default function RemindersList({ reminders, compact = false }) {
           </div>
           {!compact && (
             <div className="flex shrink-0 gap-2 sm:ml-4">
-              <a href={reminderWhatsAppUrl(r, settings)} target="_blank" rel="noopener noreferrer" className="btn-secondary px-3! py-1.5! text-xs text-emerald-700!">
+              <a href={reminderWhatsAppUrl(r, settings)} target="_blank" rel="noopener noreferrer" className="btn-secondary min-h-9 px-3! py-1.5! text-xs text-emerald-700!">
                 <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
                 Remind
               </a>
               {r.kind === 'due' ? (
-                <Link to={`/services/new?from=${r.serviceId}`} className="btn-primary px-3! py-1.5! text-xs">
+                <Link to={`/services/new?from=${r.serviceId}`} className="btn-primary min-h-9 px-3! py-1.5! text-xs">
                   <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
                   Book service
                 </Link>
               ) : (
-                <Link to={`/services/${r.serviceId}`} className="btn-secondary px-3! py-1.5! text-xs">
+                <Link to={`/services/${r.serviceId}`} className="btn-secondary min-h-9 px-3! py-1.5! text-xs">
                   <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
                   Open
                 </Link>

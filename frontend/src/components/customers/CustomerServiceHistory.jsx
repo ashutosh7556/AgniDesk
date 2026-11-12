@@ -12,7 +12,7 @@ export default function CustomerServiceHistory({ customerId }) {
   const { data, error, isLoading, reload } = useFetch((signal) => listServices({ customerId, limit: 10 }, signal), [customerId]);
 
   const action = (
-    <Link to={`/services/new?customerId=${customerId}`} className="btn-secondary px-3! py-1.5! text-xs">
+    <Link to={`/services/new?customerId=${customerId}`} className="btn-secondary min-h-9 px-3! py-1.5! text-xs">
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
       Service
     </Link>

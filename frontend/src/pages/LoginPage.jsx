@@ -5,6 +5,7 @@ import BrandLogo from '../components/ui/BrandLogo.jsx';
 import { useAuth } from '../hooks/useAuth.js';
 import { validateLogin } from '../utils/validation.js';
 import { BUSINESS } from '../constants/business.js';
+import InstallAppButton from '../pwa/InstallAppButton.jsx';
 
 function FormField({ id, label, icon: Icon, error, children }) {
   return (
@@ -162,7 +163,10 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-400">
+          <div className="mt-4 flex justify-center">
+            <InstallAppButton variant="link" />
+          </div>
+          <p className="mt-4 text-center text-xs text-slate-400">
             © {new Date().getFullYear()} {BUSINESS.name}
           </p>
         </div>

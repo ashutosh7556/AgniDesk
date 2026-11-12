@@ -42,11 +42,11 @@ export default function CustomerPurchaseHistory({ customerId }) {
 
   const actions = (
     <div className="flex gap-2">
-      <Link to={`/quotations/new?customerId=${customerId}`} className="btn-secondary px-3! py-1.5! text-xs">
+      <Link to={`/quotations/new?customerId=${customerId}`} className="btn-secondary min-h-9 px-3! py-1.5! text-xs">
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
         Quotation
       </Link>
-      <Link to={`/invoices/new?customerId=${customerId}`} className="btn-primary px-3! py-1.5! text-xs">
+      <Link to={`/invoices/new?customerId=${customerId}`} className="btn-primary min-h-9 px-3! py-1.5! text-xs">
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
         Invoice
       </Link>

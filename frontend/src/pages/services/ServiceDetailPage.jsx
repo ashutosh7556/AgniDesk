@@ -32,7 +32,7 @@ export default function ServiceDetailPage() {
   const { data: service, error, isLoading, reload } = useFetch((signal) => getService(id, signal), [id]);
 
   const backLink = (
-    <Link to="/services?tab=all" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800">
+    <Link to="/services?tab=all" className="-my-2 inline-flex min-h-10 items-center gap-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">
       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
       Services
     </Link>
@@ -88,7 +88,7 @@ export default function ServiceDetailPage() {
             {service.certificateNumber && ` · ${service.certificateNumber}`}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {isCompleted && (
             <DocumentActions number={service.certificateNumber} fetchPdf={() => getCertificatePdf(service.id)} mobile={customer.mobile} whatsappMessage={whatsappMessage} />
           )}

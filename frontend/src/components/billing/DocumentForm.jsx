@@ -300,8 +300,8 @@ function DocumentFormInner({ kind, document, initialCustomer, onSubmit, cancelTo
                   hint="Leave empty if nothing was received yet."
                 />
                 <div className="flex gap-2">
-                  <button type="button" className="btn-ghost px-2! py-1! text-xs" onClick={() => set('paymentAmount', String(totals.grandTotal))}>Fully paid</button>
-                  <button type="button" className="btn-ghost px-2! py-1! text-xs" onClick={() => set('paymentAmount', '')}>Not paid</button>
+                  <button type="button" className="btn-ghost min-h-9 px-3! py-1.5! text-xs" onClick={() => set('paymentAmount', String(totals.grandTotal))}>Fully paid</button>
+                  <button type="button" className="btn-ghost min-h-9 px-3! py-1.5! text-xs" onClick={() => set('paymentAmount', '')}>Not paid</button>
                 </div>
                 {amountPaid > 0 && (
                   <div className="grid grid-cols-2 gap-2">

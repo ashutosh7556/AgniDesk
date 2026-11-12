@@ -22,7 +22,7 @@ export default function QuotationDetailPage() {
   const { data: quotation, error, isLoading } = useFetch((signal) => getQuotation(id, signal), [id]);
 
   const backLink = (
-    <Link to="/quotations" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800">
+    <Link to="/quotations" className="-my-2 inline-flex min-h-10 items-center gap-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">
       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
       Quotations
     </Link>
@@ -61,7 +61,7 @@ export default function QuotationDetailPage() {
             {quotation.customer.name} · {formatDate(quotation.date)} · {formatMoney(quotation.grandTotal)}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <DocumentActions number={quotation.number} fetchPdf={() => getQuotationPdf(quotation.id)} mobile={quotation.customer.mobile} whatsappMessage={whatsappMessage} />
           <Link to={`/quotations/${quotation.id}/edit`} className="btn-secondary">
             <Pencil className="h-4 w-4" aria-hidden="true" />

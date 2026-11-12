@@ -104,7 +104,7 @@ export default function PaymentsPage() {
       <PageHeader title="Payments" subtitle="Money received against invoices" />
 
       {data?.summary && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <StatCard label={month ? `Received in ${monthLabel(month)}` : 'Received (all time)'} value={formatCurrency(data.summary.totalReceived)} icon={IndianRupee} tone="green" hint={mode ? `${mode} only` : undefined} />
           <StatCard label="Number of payments" value={data.summary.count} icon={Hash} tone="navy" />
         </div>

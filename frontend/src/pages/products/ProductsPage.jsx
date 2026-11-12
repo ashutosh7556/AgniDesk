@@ -160,7 +160,7 @@ export default function ProductsPage() {
       />
 
       {summary && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <StatCard label="Total Products" value={summary.totalProducts} icon={Package} tone="navy" />
           <StatCard label="Units in Stock" value={summary.totalUnits} icon={Boxes} tone="gold" />
           <StatCard label="Stock Value" value={formatCurrency(summary.stockValue)} icon={IndianRupee} tone="green" hint="At purchase price" />

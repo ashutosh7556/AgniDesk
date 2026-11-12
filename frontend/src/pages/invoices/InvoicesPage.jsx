@@ -92,7 +92,7 @@ export default function InvoicesPage() {
       <PageHeader title="Invoices" subtitle="GST and Non-GST invoices" actions={newButton} />
 
       {data?.summary && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
           <StatCard label={hasFilters ? 'Invoiced (filtered)' : 'Total Invoiced'} value={formatCurrency(data.summary.totalInvoiced)} icon={IndianRupee} tone="navy" hint="Excludes cancelled" />
           <StatCard label="Received" value={formatCurrency(data.summary.totalReceived)} icon={CheckCircle2} tone="green" />
           <StatCard label="Pending" value={formatCurrency(data.summary.totalPending)} icon={AlertCircle} tone="fire" />

@@ -4,6 +4,7 @@ import { ChevronDown, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useApiHealth } from '../../hooks/useApiHealth.js';
 import { NAV_ITEMS } from '../../constants/navigation.js';
+import InstallAppButton from '../../pwa/InstallAppButton.jsx';
 
 const API_STATUS = {
   checking: { label: 'Checking server', dot: 'bg-slate-400' },
@@ -57,6 +58,7 @@ export default function Header({ onMenuClick }) {
       <h1 className="truncate text-lg font-semibold text-navy-900">{pageTitle}</h1>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-4">
+        <InstallAppButton variant="header" />
         <span className="hidden items-center gap-2 text-xs font-medium text-slate-500 sm:inline-flex" title="Backend health check (GET /api/health)">
           <span className={`h-2 w-2 rounded-full ${apiStatus.dot}`} aria-hidden="true" />
           {apiStatus.label}

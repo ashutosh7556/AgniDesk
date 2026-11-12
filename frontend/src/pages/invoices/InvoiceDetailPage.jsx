@@ -22,7 +22,7 @@ export default function InvoiceDetailPage() {
   const { data: invoice, error, isLoading, reload } = useFetch((signal) => getInvoice(id, signal), [id]);
 
   const backLink = (
-    <Link to="/invoices" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800">
+    <Link to="/invoices" className="-my-2 inline-flex min-h-10 items-center gap-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">
       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
       Invoices
     </Link>
@@ -76,7 +76,7 @@ export default function InvoiceDetailPage() {
             {invoice.customer.name} · {formatDate(invoice.date)} · {formatMoney(invoice.grandTotal)}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <DocumentActions number={invoice.number} fetchPdf={() => getInvoicePdf(invoice.id)} mobile={invoice.customer.mobile} whatsappMessage={whatsappMessage} />
           {!isCancelled && (
             <>

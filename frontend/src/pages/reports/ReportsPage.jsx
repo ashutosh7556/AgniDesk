@@ -169,11 +169,11 @@ export default function ReportsPage() {
         <div className={`space-y-6 transition-opacity ${isLoading ? 'opacity-60' : ''}`}>
           {report.note && <p className="rounded-lg bg-slate-100 px-4 py-2.5 text-xs text-slate-600">{report.note}</p>}
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             {report.summary.map((item) => (
-              <div key={item.label} className="card p-4">
+              <div key={item.label} className="card min-w-0 p-3 sm:p-4">
                 <p className="text-xs font-medium text-slate-500">{item.label}</p>
-                <p className={`mt-1 text-xl font-bold tabular-nums ${item.type === 'money' && item.value < 0 ? 'text-fire-600' : 'text-slate-900'}`}>
+                <p className={`mt-1 break-words text-base font-bold tabular-nums sm:text-xl ${item.type === 'money' && item.value < 0 ? 'text-fire-600' : 'text-slate-900'}`}>
                   {formatCell(item.value, item.type)}
                 </p>
               </div>

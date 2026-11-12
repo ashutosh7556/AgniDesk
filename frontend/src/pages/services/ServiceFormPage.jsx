@@ -171,11 +171,11 @@ function ServiceForm({ service, source, customer }) {
                 <TextField label="Next service due" name="nextDueDate" type="date" min={addDays(state.serviceDate || todayIST(), 1)} value={state.nextDueDate} onChange={(e) => set('nextDueDate', e.target.value)} error={errors.nextDueDate} hint="Used for reminders. Leave empty if not recurring." />
                 <div className="mt-2 flex flex-wrap gap-1">
                   {[['+3 months', 3], ['+6 months', 6], ['+1 year', 12]].map(([label, months]) => (
-                    <button key={label} type="button" className="btn-ghost px-2! py-1! text-xs" onClick={() => set('nextDueDate', addMonths(state.serviceDate || todayIST(), months))}>
+                    <button key={label} type="button" className="btn-ghost min-h-9 px-3! py-1.5! text-xs" onClick={() => set('nextDueDate', addMonths(state.serviceDate || todayIST(), months))}>
                       {label}
                     </button>
                   ))}
-                  {state.nextDueDate && <button type="button" className="btn-ghost px-2! py-1! text-xs" onClick={() => set('nextDueDate', '')}>Clear</button>}
+                  {state.nextDueDate && <button type="button" className="btn-ghost min-h-9 px-3! py-1.5! text-xs" onClick={() => set('nextDueDate', '')}>Clear</button>}
                 </div>
               </div>
               <TextField label="Charges" name="charges" type="number" min="0" step="0.01" inputMode="decimal" prefix="₹" value={state.charges} onChange={(e) => set('charges', e.target.value)} error={errors.charges} hint="For your records. Bill the customer with an invoice." />
@@ -212,7 +212,7 @@ export default function ServiceFormPage() {
 
   return (
     <div className="space-y-6">
-      <Link to={isEdit ? `/services/${id}` : '/services'} className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800">
+      <Link to={isEdit ? `/services/${id}` : '/services'} className="-my-2 inline-flex min-h-10 items-center gap-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         {isEdit ? 'Back to service' : 'Services'}
       </Link>

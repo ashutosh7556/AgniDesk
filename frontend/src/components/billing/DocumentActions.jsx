@@ -35,16 +35,18 @@ export default function DocumentActions({ number, fetchPdf, mobile, whatsappMess
     busy === action ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Icon className="h-4 w-4" aria-hidden="true" />;
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <button type="button" className="btn-secondary" onClick={handleDownload} disabled={Boolean(busy)}>
+    // Phones: one row of three equal buttons; wider screens: inline buttons.
+    <div className="col-span-2 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+      <button type="button" className="btn-secondary px-2! sm:px-4!" onClick={handleDownload} disabled={Boolean(busy)}>
         {icon('download', Download)}
-        Download PDF
+        <span className="sm:hidden">PDF</span>
+        <span className="hidden sm:inline">Download PDF</span>
       </button>
-      <button type="button" className="btn-secondary" onClick={handlePrint} disabled={Boolean(busy)}>
+      <button type="button" className="btn-secondary px-2! sm:px-4!" onClick={handlePrint} disabled={Boolean(busy)}>
         {icon('print', Printer)}
         Print
       </button>
-      <button type="button" className="btn-secondary text-emerald-700!" onClick={handleWhatsApp} disabled={Boolean(busy)}>
+      <button type="button" className="btn-secondary px-2! text-emerald-700! sm:px-4!" onClick={handleWhatsApp} disabled={Boolean(busy)}>
         {icon('whatsapp', MessageCircle)}
         WhatsApp
       </button>
