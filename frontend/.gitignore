@@ -1,3 +1,6 @@
 .vercel
 .env*
 !.env.example
+
+# vite-plugin-pwa dev service worker output
+dev-dist
