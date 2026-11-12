@@ -15,33 +15,6 @@ Manages customers, inventory, quotations, GST / non-GST invoices, expenses, fire
 | Storage  | Excel (`.xlsx`) via `xlsx` — *from Phase 2* |
 | Auth     | JWT + bcrypt — *from Phase 2* |
 
-## Project structure
-
-```
-AgniDesk/
-├── frontend/          React + Vite web app
-├── backend/           Express REST API
-├── docs/              Project documentation
-└── README.md
-```
-
-## Running locally
-
-Requires Node.js 22.9 or newer.
-
-```bash
-# 1. Backend  (http://localhost:5000)
-cd backend
-cp .env.example .env
-npm install
-npm run dev
-
-# 2. Frontend (http://localhost:5173) — in a second terminal
-cd frontend
-npm install
-npm run dev
-```
-
 In development, Vite proxies `/api/*` to the backend, so no CORS setup is needed locally.
 
 **Login (Phase 1 mock):** any valid email plus a password of 6+ characters.
@@ -52,15 +25,4 @@ In development, Vite proxies `/api/*` to the backend, so no CORS setup is needed
 | ------ | ------------- | -------------------- |
 | GET    | `/api/health` | Service health check |
 
-All responses use the envelope `{ success: true, data }` or `{ success: false, error: { message } }`.
 
-## Environment variables
-
-See [backend/.env.example](backend/.env.example) and [frontend/.env.example](frontend/.env.example).
-Frontend `VITE_*` variables are bundled into the browser and must never contain secrets.
-
-## Deployment notes
-
-Frontend and backend deploy separately. Excel business data must live on **persistent storage**
-(e.g. a mounted disk). Serverless platforms with ephemeral filesystems (e.g. Vercel functions)
-must not host the Excel files.
