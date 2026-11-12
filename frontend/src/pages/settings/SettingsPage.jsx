@@ -19,10 +19,12 @@ import { useSettings } from '../../hooks/useSettings.js';
 import { useToast } from '../../hooks/useToast.js';
 import { downloadBlob } from '../../utils/documentFiles.js';
 import { GST_RATES } from '../../constants/business.js';
+import UserManagement from '../../components/settings/UserManagement.jsx';
 
 const TABS = [
   { key: 'business', label: 'Business & Documents' },
   { key: 'account', label: 'Profile & Password' },
+  { key: 'users', label: 'Users' },
   { key: 'backup', label: 'Backup & Restore' },
 ];
 
@@ -191,7 +193,7 @@ function AccountSettings() {
     try {
       await changePassword({ currentPassword: passwords.currentPassword, newPassword: passwords.newPassword });
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      toast.success('Password changed. Use the new password next time you log in.');
+      toast.success('Password changed. Other devices have been signed out.');
     } catch (error) {
       setPasswordErrors(error.fieldErrors ?? {});
       toast.error(error.message);
@@ -257,6 +259,9 @@ function BackupSettings() {
   const handleRestore = async () => {
     setIsRestoring(true);
     try {
+      // Safety copy of the CURRENT data to this computer before anything is replaced.
+      const current = await downloadBackup();
+      downloadBlob(current, `AgniDesk-before-restore-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.xlsx`);
       const data = await restoreBackup(file, { includeCustomers });
       setResult(data);
       setIsConfirmOpen(false);
@@ -276,7 +281,7 @@ function BackupSettings() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <SectionCard title="Download backup" subtitle="Everything in one Excel file">
         <p className="text-sm text-slate-600">
-          Includes customers (from Google Sheets), products, stock, quotations, invoices, payments, expenses, services and settings.
+          Includes customers, products, stock, quotations, invoices, payments, expenses, services and settings from Google Sheets.
           Login details are not included.
         </p>
         <button type="button" className="btn-primary mt-4" onClick={handleDownload} disabled={isDownloading}>
@@ -290,7 +295,7 @@ function BackupSettings() {
         <div className="space-y-4">
           <div className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            Restoring replaces current records with the ones in the file. A copy of the current data is saved on the server first (backend/backups).
+            Restoring replaces current records in Google Sheets with the ones in the file. A backup of the current data is downloaded to this computer first.
           </div>
           <div>
             <label htmlFor="backup-file" className="mb-1.5 block text-sm font-medium text-slate-700">Backup file (.xlsx)</label>
@@ -322,7 +327,7 @@ function BackupSettings() {
                 {result.restored.map((r) => <li key={r.entity}>{r.entity}: {r.records} record{r.records === 1 ? '' : 's'}</li>)}
                 {result.skipped.map((s) => <li key={s.entity} className="text-emerald-700">{s.entity}: skipped ({s.reason})</li>)}
               </ul>
-              <p className="mt-2 text-xs">Previous data saved as <span className="font-mono">{result.snapshotFile}</span> in backend/backups.</p>
+              <p className="mt-2 text-xs">Your data from before the restore was downloaded to this computer{result.snapshotFile ? ` and saved on the server as ${result.snapshotFile}` : ''}.</p>
             </div>
           )}
         </div>
@@ -335,7 +340,7 @@ function BackupSettings() {
           <>
             Current data will be replaced with <strong className="text-slate-800">{file?.name}</strong>
             {includeCustomers ? ', including the Customers tab in Google Sheets' : ' (customers in Google Sheets are kept)'}. A copy of the current
-            data is saved on the server first.
+            data is downloaded to this computer first.
           </>
         }
         confirmLabel="Restore"
@@ -357,7 +362,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" subtitle="Business details, document defaults, account and backups" />
+      <PageHeader title="Settings" subtitle="Business details, document defaults, users and backups" />
       <div className="flex flex-wrap gap-2" role="tablist">
         {TABS.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={tabClass(tab === t.key)} onClick={() => setSearchParams(t.key === 'business' ? {} : { tab: t.key })}>
@@ -367,6 +372,7 @@ export default function SettingsPage() {
       </div>
       {tab === 'business' && <BusinessSettings />}
       {tab === 'account' && <AccountSettings />}
+      {tab === 'users' && <UserManagement />}
       {tab === 'backup' && <BackupSettings />}
     </div>
   );

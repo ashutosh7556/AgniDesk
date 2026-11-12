@@ -1,35 +1,51 @@
-import { env } from '../config/env.js';
-import { ExcelStore } from './ExcelStore.js';
 import { GoogleSheetsStore } from './GoogleSheetsStore.js';
 import { DEFAULT_GST_RATE } from '../config/business.js';
 
 /**
- * Workbook definitions — one file per entity inside DATA_DIR.
- * Headers are what the owner sees when opening the file in Excel.
+ * ALL business data is stored in Google Sheets — one tab per entity.
+ * Nothing is stored on the server's disk, so the backend can be deployed
+ * without persistent storage.
+ *
+ * Columns that already exist in the owner's spreadsheet are used as-is
+ * (matched by header name). Extra columns the app needs are marked
+ * `autoCreate` and appended to the END of the header row at startup —
+ * existing columns and data are never moved or changed.
+ *
+ * Derived "display" columns kept up to date automatically by the app
+ * (see services/sheetSync.service.js): Products.Stock, Invoices.PaidAmount,
+ * Invoices.PaymentStatus and the InvoiceItems tab.
+ *
+ * Tab names can be overridden with GOOGLE_SHEETS_<NAME>_TAB (used for testing).
  */
+const tab = (name, fallback) => process.env[`GOOGLE_SHEETS_${name}_TAB`] || fallback;
+const timestamps = [
+  { key: 'createdAt', header: 'CreatedAt', type: 'string', autoCreate: true },
+  { key: 'updatedAt', header: 'UpdatedAt', type: 'string', autoCreate: true },
+];
 
-export const userStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'users.xlsx',
-  sheetName: 'Users',
+/**
+ * Login accounts. PasswordHash is bcrypt (never plain text).
+ * SECURITY: anyone with access to the spreadsheet can see hashes and edit
+ * roles — share it only with the service account and the admins.
+ */
+export const userStore = new GoogleSheetsStore({
+  sheetName: tab('USERS', 'Users'),
   idPrefix: 'USR',
   columns: [
-    { key: 'name', header: 'Name', type: 'string', width: 24 },
-    { key: 'email', header: 'Email', type: 'string', width: 32 },
-    { key: 'passwordHash', header: 'Password Hash', type: 'string', width: 64 },
-    { key: 'role', header: 'Role', type: 'string', width: 12 },
+    { key: 'id', header: 'UserID', type: 'string' },
+    { key: 'name', header: 'Name', type: 'string' },
+    { key: 'email', header: 'Email', type: 'string' },
+    { key: 'passwordHash', header: 'PasswordHash', type: 'string' },
+    { key: 'role', header: 'Role', type: 'string' },
+    { key: 'createdAt', header: 'CreatedAt', type: 'string' },
+    // Tokens issued before this moment are rejected (reset/removal signs the person out).
+    { key: 'passwordChangedAt', header: 'PasswordChangedAt', type: 'string', autoCreate: true },
+    { key: 'updatedAt', header: 'UpdatedAt', type: 'string', optional: true },
   ],
 });
 
-/**
- * Customers are stored in GOOGLE SHEETS ("Customers" tab), not Excel.
- * Same interface as ExcelStore, so customer.service and every module that
- * reads customers (invoices, quotations, services, dashboard) work unchanged.
- * The old backend/data/customers.xlsx is no longer read or written
- * (copy existing rows over with: npm run migrate:customers-to-sheets).
- */
 export const customerStore = new GoogleSheetsStore({
-  sheetName: 'Customers',
+  sheetName: tab('CUSTOMERS', 'Customers'),
   idPrefix: 'CUS',
   columns: [
     { key: 'id', header: 'CustomerID', type: 'string' },
@@ -40,181 +56,222 @@ export const customerStore = new GoogleSheetsStore({
     { key: 'address', header: 'Address', type: 'string' },
     { key: 'gstNumber', header: 'GSTNumber', type: 'string' },
     { key: 'createdAt', header: 'CreatedAt', type: 'string' },
-    // Written only if you add an "UpdatedAt" column to the sheet.
     { key: 'updatedAt', header: 'UpdatedAt', type: 'string', optional: true },
   ],
 });
 
-export const productStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'products.xlsx',
-  sheetName: 'Products',
+/** Available stock is CALCULATED (opening + adjustments − invoiced); "Stock" shows it for reading. */
+export const productStore = new GoogleSheetsStore({
+  sheetName: tab('PRODUCTS', 'Products'),
   idPrefix: 'PRD',
   columns: [
-    { key: 'name', header: 'Product Name', type: 'string', width: 34 },
-    { key: 'category', header: 'Category', type: 'string', width: 18 },
-    { key: 'purchasePrice', header: 'Purchase Price', type: 'number', width: 15 },
-    { key: 'sellingPrice', header: 'Selling Price', type: 'number', width: 15 },
-    // Available stock is CALCULATED (opening + adjustments − invoiced), never stored.
-    { key: 'openingStock', header: 'Opening Stock', type: 'number', width: 15, aliases: ['Available Quantity', 'quantity'] },
-    { key: 'lowStockThreshold', header: 'Low Stock Alert At', type: 'number', width: 18 },
-    // Added in Phase 3; existing rows read the defaults until edited.
-    { key: 'hsnCode', header: 'HSN/SAC Code', type: 'string', width: 14 },
-    { key: 'gstRate', header: 'GST %', type: 'number', width: 8, default: DEFAULT_GST_RATE },
+    { key: 'id', header: 'ProductID', type: 'string' },
+    { key: 'name', header: 'Name', type: 'string' },
+    { key: 'category', header: 'Category', type: 'string' },
+    { key: 'purchasePrice', header: 'PurchasePrice', type: 'number' },
+    { key: 'sellingPrice', header: 'SellingPrice', type: 'number' },
+    { key: 'sheetStock', header: 'Stock', type: 'number' }, // display only, maintained by sheetSync
+    { key: 'lowStockThreshold', header: 'LowStockLimit', type: 'number' },
+    { key: 'createdAt', header: 'CreatedAt', type: 'string' },
+    { key: 'openingStock', header: 'OpeningStock', type: 'number', autoCreate: true },
+    { key: 'hsnCode', header: 'HSNCode', type: 'string', autoCreate: true },
+    { key: 'gstRate', header: 'GSTRate', type: 'number', default: DEFAULT_GST_RATE, autoCreate: true },
+    { key: 'updatedAt', header: 'UpdatedAt', type: 'string', autoCreate: true },
+  ],
+});
+
+/** Stock received / corrections. Sales come from invoices. (Tab created automatically.) */
+export const stockMovementStore = new GoogleSheetsStore({
+  sheetName: tab('STOCK_MOVEMENTS', 'StockMovements'),
+  idPrefix: 'STK',
+  createTab: true,
+  columns: [
+    { key: 'id', header: 'MovementID', type: 'string' },
+    { key: 'date', header: 'Date', type: 'string' },
+    { key: 'productId', header: 'ProductID', type: 'string' },
+    { key: 'productName', header: 'ProductName', type: 'string' },
+    { key: 'type', header: 'Type', type: 'string' }, // purchase | adjustment
+    { key: 'quantity', header: 'Quantity', type: 'number' },
+    { key: 'note', header: 'Note', type: 'string' },
+    ...timestamps,
   ],
 });
 
 /**
- * Columns shared by quotations and invoices. Totals are flattened into their
- * own columns so the workbook is readable in Excel; line items and the
- * customer snapshot are JSON text.
- *
- * The customer snapshot freezes the billing details at the time of issue,
- * so later edits to the customer record never change past documents.
+ * Columns shared by quotations and invoices (appended if missing). Line items
+ * and the customer snapshot are JSON in one cell, so a document is always
+ * saved in ONE row (never half-saved). The snapshot freezes billing details
+ * at the time of issue.
  */
-const billingDocumentColumns = [
-  { key: 'number', header: 'Number', type: 'string', width: 18 },
-  { key: 'date', header: 'Date', type: 'string', width: 12 },
-  { key: 'customerId', header: 'Customer ID', type: 'string', width: 12 },
-  { key: 'customerName', header: 'Customer Name', type: 'string', width: 28 },
-  { key: 'taxMode', header: 'Tax Mode', type: 'string', width: 10 },
-  { key: 'supplyType', header: 'Supply Type', type: 'string', width: 11 },
-  { key: 'subtotal', header: 'Subtotal', type: 'number', width: 13 },
-  { key: 'discountTotal', header: 'Discount', type: 'number', width: 12 },
-  { key: 'taxableTotal', header: 'Taxable Value', type: 'number', width: 14 },
-  { key: 'cgstTotal', header: 'CGST', type: 'number', width: 11 },
-  { key: 'sgstTotal', header: 'SGST', type: 'number', width: 11 },
-  { key: 'igstTotal', header: 'IGST', type: 'number', width: 11 },
-  { key: 'taxTotal', header: 'Total Tax', type: 'number', width: 12 },
-  { key: 'roundOff', header: 'Round Off', type: 'number', width: 10 },
-  { key: 'grandTotal', header: 'Grand Total', type: 'number', width: 14 },
-  { key: 'notes', header: 'Notes', type: 'string', width: 30 },
-  { key: 'customer', header: 'Customer Snapshot (JSON)', type: 'json', width: 40, default: {} },
-  { key: 'items', header: 'Line Items (JSON)', type: 'json', width: 60, default: [] },
+const documentExtraColumns = [
+  { key: 'customerName', header: 'CustomerName', type: 'string', autoCreate: true },
+  { key: 'taxMode', header: 'TaxMode', type: 'string', autoCreate: true },
+  { key: 'supplyType', header: 'SupplyType', type: 'string', autoCreate: true },
+  { key: 'taxableTotal', header: 'TaxableValue', type: 'number', autoCreate: true },
+  { key: 'cgstTotal', header: 'CGST', type: 'number', autoCreate: true },
+  { key: 'sgstTotal', header: 'SGST', type: 'number', autoCreate: true },
+  { key: 'igstTotal', header: 'IGST', type: 'number', autoCreate: true },
+  { key: 'roundOff', header: 'RoundOff', type: 'number', autoCreate: true },
+  { key: 'notes', header: 'Notes', type: 'string', autoCreate: true },
+  { key: 'items', header: 'ItemsJSON', type: 'json', default: [], autoCreate: true },
+  { key: 'customer', header: 'CustomerJSON', type: 'json', default: {}, autoCreate: true },
+  ...timestamps,
 ];
 
-export const quotationStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'quotations.xlsx',
-  sheetName: 'Quotations',
+export const quotationStore = new GoogleSheetsStore({
+  sheetName: tab('QUOTATIONS', 'Quotations'),
   idPrefix: 'QTN',
   columns: [
-    ...billingDocumentColumns.slice(0, 2),
-    { key: 'validUntil', header: 'Valid Until', type: 'string', width: 12 },
-    ...billingDocumentColumns.slice(2),
-    { key: 'terms', header: 'Terms & Conditions', type: 'string', width: 40 },
+    { key: 'id', header: 'QuotationID', type: 'string' },
+    { key: 'customerId', header: 'CustomerID', type: 'string' },
+    { key: 'date', header: 'QuotationDate', type: 'string' },
+    { key: 'validUntil', header: 'ValidUntil', type: 'string' },
+    { key: 'subtotal', header: 'Subtotal', type: 'number' },
+    { key: 'discountTotal', header: 'Discount', type: 'number' },
+    { key: 'taxTotal', header: 'GST', type: 'number' },
+    { key: 'grandTotal', header: 'GrandTotal', type: 'number' },
+    { key: 'sheetStatus', header: 'Status', type: 'string', optional: true },
+    { key: 'number', header: 'QuotationNumber', type: 'string', autoCreate: true },
+    { key: 'terms', header: 'Terms', type: 'string', autoCreate: true },
+    ...documentExtraColumns,
   ],
 });
 
-export const invoiceStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'invoices.xlsx',
-  sheetName: 'Invoices',
+/** Amount paid / payment status are CALCULATED from Payments; PaidAmount & PaymentStatus show them. */
+export const invoiceStore = new GoogleSheetsStore({
+  sheetName: tab('INVOICES', 'Invoices'),
   idPrefix: 'IVC',
   columns: [
-    ...billingDocumentColumns.slice(0, 2),
-    { key: 'invoiceType', header: 'Invoice Type', type: 'string', width: 12 },
-    { key: 'status', header: 'Status', type: 'string', width: 11, default: 'active' },
-    // Amount paid is CALCULATED from payments.xlsx, never stored here.
-    ...billingDocumentColumns.slice(2),
+    { key: 'id', header: 'InvoiceID', type: 'string' },
+    { key: 'customerId', header: 'CustomerID', type: 'string' },
+    { key: 'date', header: 'InvoiceDate', type: 'string' },
+    { key: 'subtotal', header: 'Subtotal', type: 'number' },
+    { key: 'discountTotal', header: 'Discount', type: 'number' },
+    { key: 'taxTotal', header: 'GST', type: 'number' },
+    { key: 'grandTotal', header: 'GrandTotal', type: 'number' },
+    { key: 'sheetPaidAmount', header: 'PaidAmount', type: 'number' }, // display only, maintained by sheetSync
+    { key: 'sheetPaymentStatus', header: 'PaymentStatus', type: 'string' }, // display only
+    { key: 'number', header: 'InvoiceNumber', type: 'string', autoCreate: true },
+    { key: 'invoiceType', header: 'InvoiceType', type: 'string', autoCreate: true },
+    { key: 'status', header: 'Status', type: 'string', default: 'active', autoCreate: true },
+    ...documentExtraColumns,
   ],
 });
 
-/** Manual stock changes (purchases received, corrections). Sales come from invoices. */
-export const stockMovementStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'stock_movements.xlsx',
-  sheetName: 'Stock Movements',
-  idPrefix: 'STK',
+/**
+ * One readable row per invoice line, REBUILT automatically from the invoices
+ * (sheetSync). Edit invoices in AgniDesk; edits made in this tab are overwritten.
+ */
+export const invoiceItemStore = new GoogleSheetsStore({
+  sheetName: tab('INVOICE_ITEMS', 'InvoiceItems'),
+  idPrefix: 'ITM',
+  idPattern: /^IVC-\d+-(\d+)$/,
   columns: [
-    { key: 'date', header: 'Date', type: 'string', width: 12 },
-    { key: 'productId', header: 'Product ID', type: 'string', width: 12 },
-    { key: 'productName', header: 'Product Name', type: 'string', width: 32 },
-    { key: 'type', header: 'Type', type: 'string', width: 12 }, // purchase | adjustment
-    { key: 'quantity', header: 'Quantity (+/-)', type: 'number', width: 14 },
-    { key: 'note', header: 'Note', type: 'string', width: 40 },
+    { key: 'id', header: 'ItemID', aliases: ['j'], type: 'string' },
+    { key: 'invoiceId', header: 'InvoiceID', type: 'string' },
+    { key: 'productId', header: 'ProductID', type: 'string' },
+    { key: 'description', header: 'Description', type: 'string' },
+    { key: 'quantity', header: 'Quantity', type: 'number' },
+    { key: 'rate', header: 'UnitPrice', type: 'number' },
+    { key: 'total', header: 'Total', type: 'number' },
+    { key: 'invoiceNumber', header: 'InvoiceNumber', type: 'string', autoCreate: true },
+    { key: 'hsnCode', header: 'HSN', type: 'string', autoCreate: true },
+    { key: 'discountPercent', header: 'DiscountPercent', type: 'number', autoCreate: true },
+    { key: 'gstRate', header: 'GSTRate', type: 'number', autoCreate: true },
+    { key: 'taxableValue', header: 'TaxableValue', type: 'number', autoCreate: true },
+    { key: 'taxAmount', header: 'TaxAmount', type: 'number', autoCreate: true },
   ],
 });
 
-export const paymentStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'payments.xlsx',
-  sheetName: 'Payments',
+export const paymentStore = new GoogleSheetsStore({
+  sheetName: tab('PAYMENTS', 'Payments'),
   idPrefix: 'PAY',
   columns: [
-    { key: 'date', header: 'Date', type: 'string', width: 12 },
-    { key: 'invoiceId', header: 'Invoice ID', type: 'string', width: 12 },
-    { key: 'invoiceNumber', header: 'Invoice Number', type: 'string', width: 18 },
-    { key: 'customerId', header: 'Customer ID', type: 'string', width: 12 },
-    { key: 'customerName', header: 'Customer Name', type: 'string', width: 28 },
-    { key: 'amount', header: 'Amount', type: 'number', width: 14 },
-    { key: 'mode', header: 'Mode', type: 'string', width: 14 },
-    { key: 'reference', header: 'Reference', type: 'string', width: 22 },
-    { key: 'note', header: 'Note', type: 'string', width: 30 },
+    { key: 'id', header: 'PaymentID', type: 'string' },
+    { key: 'invoiceId', header: 'InvoiceID', type: 'string' },
+    { key: 'customerId', header: 'CustomerID', type: 'string' },
+    { key: 'amount', header: 'Amount', type: 'number' },
+    { key: 'date', header: 'PaymentDate', type: 'string' },
+    { key: 'mode', header: 'PaymentMethod', type: 'string' },
+    { key: 'note', header: 'Notes', type: 'string' },
+    { key: 'invoiceNumber', header: 'InvoiceNumber', type: 'string', autoCreate: true },
+    { key: 'customerName', header: 'CustomerName', type: 'string', autoCreate: true },
+    { key: 'reference', header: 'Reference', type: 'string', autoCreate: true },
+    ...timestamps,
   ],
 });
 
-export const expenseStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'expenses.xlsx',
-  sheetName: 'Expenses',
+export const expenseStore = new GoogleSheetsStore({
+  sheetName: tab('EXPENSES', 'Expenses'),
   idPrefix: 'EXP',
   columns: [
-    { key: 'date', header: 'Date', type: 'string', width: 12 },
-    { key: 'title', header: 'Expense Title', type: 'string', width: 32 },
-    { key: 'category', header: 'Category', type: 'string', width: 20 },
-    { key: 'amount', header: 'Amount', type: 'number', width: 14 },
-    { key: 'description', header: 'Description', type: 'string', width: 44 },
+    { key: 'id', header: 'ExpenseID', type: 'string' },
+    { key: 'title', header: 'Title', type: 'string' },
+    { key: 'category', header: 'Category', type: 'string' },
+    { key: 'amount', header: 'Amount', type: 'number' },
+    { key: 'date', header: 'ExpenseDate', type: 'string' },
+    { key: 'description', header: 'Description', type: 'string' },
+    ...timestamps,
   ],
 });
 
-/** Fire safety service visits. Certificate number is assigned when a service is completed. */
-export const serviceStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'services.xlsx',
-  sheetName: 'Services',
+const equipmentSummary = (record) =>
+  (record.equipment ?? []).map((e) => `${e.name} × ${e.quantity}${e.details ? ` (${e.details})` : ''}`).join('; ');
+
+/** Service visits. Equipment = readable summary; EquipmentJSON = the data the app uses. */
+export const serviceStore = new GoogleSheetsStore({
+  sheetName: tab('SERVICES', 'Services'),
   idPrefix: 'SRV',
   columns: [
-    { key: 'serviceDate', header: 'Service Date', type: 'string', width: 12 },
-    { key: 'customerId', header: 'Customer ID', type: 'string', width: 12 },
-    { key: 'customerName', header: 'Customer Name', type: 'string', width: 28 },
-    { key: 'serviceType', header: 'Service Type', type: 'string', width: 28 },
-    { key: 'status', header: 'Status', type: 'string', width: 12, default: 'scheduled' },
-    { key: 'nextDueDate', header: 'Next Due Date', type: 'string', width: 13 },
-    { key: 'charges', header: 'Charges', type: 'number', width: 12 },
-    { key: 'technician', header: 'Technician', type: 'string', width: 18 },
-    { key: 'siteAddress', header: 'Site Address', type: 'string', width: 40 },
-    { key: 'remarks', header: 'Remarks', type: 'string', width: 40 },
-    { key: 'certificateNumber', header: 'Certificate No.', type: 'string', width: 18 },
-    { key: 'completedAt', header: 'Completed At', type: 'string', width: 22 },
-    { key: 'customer', header: 'Customer Snapshot (JSON)', type: 'json', width: 40, default: {} },
-    { key: 'equipment', header: 'Equipment (JSON)', type: 'json', width: 50, default: [] },
+    { key: 'id', header: 'ServiceID', type: 'string' },
+    { key: 'customerId', header: 'CustomerID', type: 'string' },
+    { key: 'equipmentSummary', header: 'Equipment', type: 'string', compute: equipmentSummary },
+    { key: 'serviceType', header: 'ServiceType', type: 'string' },
+    { key: 'serviceDate', header: 'ServiceDate', type: 'string' },
+    { key: 'nextDueDate', header: 'NextDueDate', type: 'string' },
+    { key: 'charges', header: 'Charges', type: 'number' },
+    { key: 'status', header: 'Status', type: 'string', default: 'scheduled' },
+    { key: 'remarks', header: 'Notes', type: 'string' },
+    { key: 'customerName', header: 'CustomerName', type: 'string', autoCreate: true },
+    { key: 'technician', header: 'Technician', type: 'string', autoCreate: true },
+    { key: 'siteAddress', header: 'SiteAddress', type: 'string', autoCreate: true },
+    { key: 'certificateNumber', header: 'CertificateNumber', type: 'string', autoCreate: true },
+    { key: 'completedAt', header: 'CompletedAt', type: 'string', autoCreate: true },
+    { key: 'equipment', header: 'EquipmentJSON', type: 'json', default: [], autoCreate: true },
+    { key: 'customer', header: 'CustomerJSON', type: 'json', default: {}, autoCreate: true },
+    ...timestamps,
   ],
 });
 
-/** Business settings as key/value rows (one row per setting). */
-export const settingsStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'settings.xlsx',
-  sheetName: 'Settings',
+/** Business settings as key/value rows. (Tab created automatically.) */
+export const settingsStore = new GoogleSheetsStore({
+  sheetName: tab('SETTINGS', 'Settings'),
   idPrefix: 'SET',
+  createTab: true,
   columns: [
-    { key: 'key', header: 'Setting', type: 'string', width: 26 },
-    { key: 'value', header: 'Value', type: 'string', width: 80 },
+    { key: 'id', header: 'SettingID', type: 'string' },
+    { key: 'key', header: 'Setting', type: 'string' },
+    { key: 'value', header: 'Value', type: 'string' },
+    ...timestamps,
   ],
 });
 
-/** Ensures the data folder and every workbook exist. Called once at startup. */
-export const initStores = () =>
-  Promise.all([
-    userStore.init(),
-    customerStore.init(),
-    productStore.init(),
-    quotationStore.init(),
-    invoiceStore.init(),
-    stockMovementStore.init(),
-    paymentStore.init(),
-    expenseStore.init(),
-    serviceStore.init(),
-    settingsStore.init(),
-  ]);
+/** Checks/creates every tab and its columns. Called once at startup. */
+export async function initStores() {
+  // Sequential: tab creation and header changes are clearer one at a time.
+  for (const store of [
+    userStore,
+    customerStore,
+    productStore,
+    stockMovementStore,
+    quotationStore,
+    invoiceStore,
+    invoiceItemStore,
+    paymentStore,
+    expenseStore,
+    serviceStore,
+    settingsStore,
+  ]) {
+    await store.init();
+  }
+}

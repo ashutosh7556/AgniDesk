@@ -14,6 +14,7 @@ import {
 } from '../storage/stores.js';
 import { ApiError } from '../utils/ApiError.js';
 import { loadSettings } from './settings.service.js';
+import { syncAllSheetsNow } from './sheetSync.service.js';
 
 /**
  * Full backup / restore as ONE .xlsx file:
@@ -26,7 +27,8 @@ import { loadSettings } from './settings.service.js';
  * password or leak its hash.
  *
  * Restore replaces each entity found in the file. Before writing anything,
- * a snapshot of the current data is saved to BACKUP_DIR (backend/backups/).
+ * a snapshot of the current data is saved to BACKUP_DIR when the disk allows
+ * (best effort), and the frontend downloads a safety backup first.
  */
 
 const FORMAT_VERSION = 1;
@@ -164,11 +166,19 @@ export async function restoreBackup(buffer, { includeCustomers }) {
   }
   if (!plan.length) throw new ApiError(400, 'Nothing to restore in this file.');
 
-  // Safety net: snapshot of the current data
-  await fs.mkdir(BACKUP_DIR, { recursive: true });
-  const snapshot = await createBackup();
-  const snapshotFile = `AgniDesk-before-restore-${timestamp()}.xlsx`;
-  await fs.writeFile(path.join(BACKUP_DIR, snapshotFile), snapshot.buffer);
+  // Safety net (best effort): snapshot of the current data on the server's disk.
+  // Hosted servers may have no permanent disk, so the frontend ALSO downloads a
+  // backup to the owner's computer before calling restore.
+  let snapshotFile = '';
+  try {
+    await fs.mkdir(BACKUP_DIR, { recursive: true });
+    const snapshot = await createBackup();
+    snapshotFile = `AgniDesk-before-restore-${timestamp()}.xlsx`;
+    await fs.writeFile(path.join(BACKUP_DIR, snapshotFile), snapshot.buffer);
+  } catch (error) {
+    console.warn(`[backup] Could not save server snapshot before restore: ${error.message}`);
+    snapshotFile = '';
+  }
 
   const restored = [];
   for (const { entity, records } of plan) {
@@ -176,6 +186,7 @@ export async function restoreBackup(buffer, { includeCustomers }) {
     restored.push({ entity: entity.label, records: records.length });
   }
   await loadSettings();
+  await syncAllSheetsNow();
 
   return { restored, skipped, snapshotFile, snapshotFolder: BACKUP_DIR };
 }

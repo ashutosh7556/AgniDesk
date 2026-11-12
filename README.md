@@ -12,13 +12,13 @@ Manages customers, inventory, quotations, GST / non-GST invoices, expenses, fire
 | -------- | ---------- |
 | Frontend | React 19, Vite, React Router, Tailwind CSS v4, Lucide icons |
 | Backend  | Node.js (>= 22.9), Express 5, Helmet, CORS, zod, express-rate-limit |
-| Storage  | Excel (`.xlsx`) files via `exceljs`, one workbook per entity |
+| Storage  | **Google Sheets** (one tab per entity) via `googleapis`; no local data files |
 | Auth     | JWT (`jsonwebtoken`) + bcrypt (`bcryptjs`) |
 | PDF      | `pdfkit` (server-side) |
 
 In development, Vite proxies `/api/*` to the backend, so no CORS setup is needed locally.
 
-**Login:** owner email and password set in `backend/.env` on first start. See [docs/SETUP.md](docs/SETUP.md) for setup, API reference and Excel storage notes.
+**Login:** owner email and password set in `backend/.env` on first start. See [docs/SETUP.md](docs/SETUP.md) for setup, API reference and Google Sheets storage notes.
 
 ## API
 

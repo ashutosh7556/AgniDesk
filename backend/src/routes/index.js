@@ -13,6 +13,7 @@ import serviceRoutes from './service.routes.js';
 import settingsRoutes from './settings.routes.js';
 import reportRoutes from './report.routes.js';
 import backupRoutes from './backup.routes.js';
+import userRoutes from './user.routes.js';
 
 /** Mounts all API route modules under /api. */
 const router = Router();
@@ -32,6 +33,7 @@ router.use('/services', requireAuth, serviceRoutes);
 router.use('/settings', requireAuth, settingsRoutes);
 router.use('/reports', requireAuth, reportRoutes);
 router.use('/backup', requireAuth, backupRoutes);
+router.use('/users', requireAuth, userRoutes);
 router.get('/dashboard', requireAuth, async (_req, res) => {
   res.json({ success: true, data: await getDashboard() });
 });

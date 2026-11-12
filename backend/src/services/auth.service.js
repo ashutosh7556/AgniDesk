@@ -24,26 +24,44 @@ export async function login({ email, password }) {
   const passwordOk = await bcrypt.compare(password, user?.passwordHash || DUMMY_HASH);
   if (!user || !passwordOk) throw new ApiError(401, INVALID_CREDENTIALS);
 
-  const token = jwt.sign({ role: user.role }, env.jwtSecret, {
+  return { token: signToken(user), user: toPublicUser(user) };
+}
+
+const signToken = (user) =>
+  // issuedAtMs: exact issue time, so a password change/reset can invalidate older tokens precisely.
+  jwt.sign({ role: user.role, issuedAtMs: Date.now() }, env.jwtSecret, {
     subject: user.id,
     issuer: JWT_ISSUER,
     expiresIn: env.jwtExpiresIn,
     algorithm: 'HS256',
   });
 
-  return { token, user: toPublicUser(user) };
-}
-
-/** Returns { userId, role } or throws 401. */
+/** Returns { userId, role, issuedAt } or throws 401 (signature/expiry only). */
 export function verifyToken(token) {
   try {
     const payload = jwt.verify(token, env.jwtSecret, { issuer: JWT_ISSUER, algorithms: ['HS256'] });
-    return { userId: payload.sub, role: payload.role };
+    return { userId: payload.sub, role: payload.role, issuedAt: payload.issuedAtMs ?? payload.iat * 1000 };
   } catch (error) {
     const message =
       error.name === 'TokenExpiredError' ? 'Session expired. Please log in again.' : 'Invalid session.';
     throw new ApiError(401, message);
   }
+}
+
+/**
+ * Full check used by requireAuth on every request: valid signature, the account
+ * still exists, and the token was issued after the last password change/reset.
+ * Uses the user's CURRENT role (not the one baked into the token).
+ */
+export async function authenticate(token) {
+  const { userId, issuedAt } = verifyToken(token);
+  const user = await userStore.findById(userId);
+  if (!user) throw new ApiError(401, 'Account no longer exists.');
+  const changedAt = Date.parse(user.passwordChangedAt || '');
+  if (changedAt && issuedAt < changedAt) {
+    throw new ApiError(401, 'Your password was changed. Please log in again.');
+  }
+  return { userId: user.id, role: user.role };
 }
 
 /** Loads the current user, rejecting tokens whose user has since been removed. */
@@ -96,5 +114,7 @@ export async function changePassword(userId, { currentPassword, newPassword }) {
   if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
     throw new ApiError(400, 'Please correct the highlighted fields.', [{ field: 'currentPassword', message: 'Current password is incorrect.' }]);
   }
-  await userStore.update(userId, { passwordHash: await hashPassword(newPassword) });
+  await userStore.update(userId, { passwordHash: await hashPassword(newPassword), passwordChangedAt: new Date().toISOString() });
+  // Other devices are signed out; this device gets a fresh token so it stays logged in.
+  return { token: signToken(user) };
 }

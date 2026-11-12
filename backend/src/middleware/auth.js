@@ -1,11 +1,12 @@
-import { verifyToken } from '../services/auth.service.js';
+import { authenticate } from '../services/auth.service.js';
 import { ApiError } from '../utils/ApiError.js';
 
 /**
- * Requires a valid "Authorization: Bearer <JWT>" header.
+ * Requires a valid "Authorization: Bearer <JWT>" header for an account that
+ * still exists and whose password hasn't changed since the token was issued.
  * On success sets req.auth = { userId, role }.
  */
-export const requireAuth = (req, _res, next) => {
+export const requireAuth = async (req, _res, next) => {
   const header = req.get('authorization') ?? '';
   const [scheme, token] = header.split(' ');
 
@@ -13,8 +14,12 @@ export const requireAuth = (req, _res, next) => {
     return next(new ApiError(401, 'Authentication required.'));
   }
 
-  req.auth = verifyToken(token); // throws ApiError(401) when invalid/expired
-  return next();
+  try {
+    req.auth = await authenticate(token);
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 };
 
 /**

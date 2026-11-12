@@ -2,6 +2,7 @@ import { invoiceStore, paymentStore } from '../storage/stores.js';
 import { ApiError } from '../utils/ApiError.js';
 import { round2 } from '../utils/billing.js';
 import { matchesSearch, paginate } from '../utils/listing.js';
+import { scheduleSheetSync } from './sheetSync.service.js';
 
 /**
  * Payments are the single source of truth for "amount paid":
@@ -49,7 +50,7 @@ export async function recordPayment(invoiceId, { date, amount, mode, reference =
   if (!invoice) throw new ApiError(404, 'Invoice not found.');
   if (invoice.status === 'cancelled') throw new ApiError(409, 'Payments cannot be recorded on a cancelled invoice.');
 
-  return paymentStore.create((existingPayments) => {
+  const created = await paymentStore.create((existingPayments) => {
     const alreadyPaid = paidTotals(existingPayments).get(invoiceId) ?? 0;
     const balance = round2(invoice.grandTotal - alreadyPaid);
     if (amount > balance) {
@@ -69,9 +70,12 @@ export async function recordPayment(invoiceId, { date, amount, mode, reference =
       note,
     };
   });
+  scheduleSheetSync('invoicePayments');
+  return created;
 }
 
 export async function deletePayment(id) {
   const deleted = await paymentStore.delete(id);
   if (!deleted) throw new ApiError(404, 'Payment not found.');
+  scheduleSheetSync('invoicePayments');
 }

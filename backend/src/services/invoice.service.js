@@ -11,6 +11,9 @@ import {
   toListItem,
 } from './billingDocument.service.js';
 import { paidTotals, recordPayment } from './payment.service.js';
+import { scheduleSheetSync } from './sheetSync.service.js';
+
+const syncAfterInvoiceChange = () => scheduleSheetSync('stock', 'invoicePayments', 'invoiceItems');
 
 const SEARCH_FIELDS = ['number', 'customerName'];
 
@@ -89,8 +92,9 @@ export async function createInvoice({ payment, ...input }) {
     ),
   }));
 
+  syncAfterInvoiceChange();
   if (payment) {
-    // Second file write: if it fails, the invoice still exists and the payment can be re-entered.
+    // Second write: if it fails, the invoice still exists and the payment can be re-entered.
     try {
       await recordPayment(created.id, { ...payment, date: input.date, note: 'Received at billing' });
     } catch (error) {
@@ -122,6 +126,7 @@ export async function updateInvoice(id, { payment: _ignored, ...input }) {
   }
 
   await invoiceStore.update(id, document);
+  syncAfterInvoiceChange();
   return getInvoice(id);
 }
 
@@ -137,5 +142,6 @@ export async function cancelInvoice(id) {
     throw new ApiError(409, 'This invoice has payments recorded. Delete the payments (refund) before cancelling it.');
   }
   await invoiceStore.update(id, { status: 'cancelled' });
+  syncAfterInvoiceChange();
   return getInvoice(id);
 }

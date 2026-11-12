@@ -2,6 +2,7 @@ import { invoiceStore, productStore, stockMovementStore } from '../storage/store
 import { ApiError } from '../utils/ApiError.js';
 import { byNewest, matchesSearch, paginate } from '../utils/listing.js';
 import { getStockHistory, getStockLevels } from './inventory.service.js';
+import { scheduleSheetSync } from './sheetSync.service.js';
 
 const SEARCH_FIELDS = ['id', 'name', 'category', 'hsnCode'];
 
@@ -57,6 +58,7 @@ export async function getProduct(id) {
 
 export async function createProduct(data) {
   const created = await productStore.create(data);
+  scheduleSheetSync('stock');
   return getProduct(created.id);
 }
 
@@ -81,6 +83,7 @@ export async function deleteProduct(id) {
 export async function adjustStock(id, { date, type, quantity, note }) {
   const product = await findProductOrThrow(id);
   await stockMovementStore.create({ date, productId: id, productName: product.name, type, quantity, note });
+  scheduleSheetSync('stock');
   return getProduct(id);
 }
 

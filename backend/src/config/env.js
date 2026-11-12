@@ -41,6 +41,8 @@ export const env = Object.freeze({
 
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '12h',
+  // Maximum number of admin accounts that can be created from Settings > Users.
+  maxAdmins: Math.max(1, Number.parseInt(process.env.MAX_ADMINS ?? '2', 10) || 2),
 
   owner: Object.freeze({
     name: process.env.OWNER_NAME || 'Business Owner',

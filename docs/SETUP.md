@@ -13,7 +13,7 @@ Manages customers, inventory, quotations, GST / non-GST invoices, expenses, fire
 | -------- | ---------- |
 | Frontend | React 19, Vite, React Router, Tailwind CSS v4, Lucide icons |
 | Backend  | Node.js (>= 22.9), Express 5, Helmet, CORS, zod, express-rate-limit |
-| Storage  | Excel (`.xlsx`) files via `exceljs`, one workbook per entity |
+| Storage  | Google Sheets (one tab per entity) via `googleapis` |
 | Auth     | JWT (`jsonwebtoken`) + bcrypt (`bcryptjs`) |
 
 ## Project structure
@@ -143,44 +143,38 @@ Protected routes need `Authorization: Bearer <token>`.
   the due date (or when overdue) until a newer service of the same type is recorded for that customer.
   Scheduled visits in the window are listed too. Reminders offer "Book service" and a WhatsApp message.
 
-## Google Sheets storage (customers)
+## Storage: Google Sheets (all data)
 
-- **Customers are stored in Google Sheets** (tab `Customers`), not Excel. All other data is still in Excel.
-- Setup: `GOOGLE_SHEETS_SPREADSHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` in `backend/.env`; key file in
-  `backend/credentials/` (git-ignored); share the spreadsheet with the service account email as Editor.
-- Required headers in row 1: `CustomerID, Name, Company, Mobile, Email, Address, GSTNumber, CreatedAt`
-  (optional `UpdatedAt`). Columns are matched by name; extra columns you add are kept.
-- Rows whose CustomerID is not `CUS-0001` style are ignored. Edits made directly in the sheet show in the
-  app within ~5 seconds (short read cache to stay within Google's API quota).
-- Commands (from `backend/`): `npm run test:sheets-customers` (connection test),
-  `npm run migrate:customers-to-sheets` (one-time copy from the old customers.xlsx, safe to re-run).
-- Needs internet. If Google Sheets is unreachable, customer screens show an error; other modules keep working
-  except where they need customer details (e.g. creating an invoice).
+**Every record is stored in the Google spreadsheet** (one tab per entity). The server keeps no data files,
+so it can be deployed without a persistent disk.
 
-## Settings, reports and backups
+| Tab | Contents |
+| --- | --- |
+| Users | Login accounts (bcrypt PasswordHash, Role, PasswordChangedAt) |
+| Customers | Customers |
+| Products | Products. `Stock` = current stock (display, kept up to date); `OpeningStock` is the stored value |
+| StockMovements | Stock received / corrections (tab created automatically) |
+| Quotations | Quotations (line items + customer snapshot as JSON in `ItemsJSON` / `CustomerJSON`) |
+| Invoices | Invoices. `PaidAmount` / `PaymentStatus` are display columns kept up to date from Payments |
+| InvoiceItems | One row per invoice line, **rebuilt automatically** from Invoices (don't edit here) |
+| Payments | Payments received |
+| Expenses | Expenses |
+| Services | Service visits. `Equipment` = readable summary; `EquipmentJSON` = data |
+| Settings | Business settings (tab created automatically) |
 
-- **Settings** (`settings.xlsx`): business details, GSTIN/state, default GST rate, quotation validity,
-  default terms and invoice notes. Used immediately by PDFs and forms. `BUSINESS_*` env vars are only
-  first-time defaults. Owner profile and password are changed under Settings → Profile & Password.
-- **Reports** (`GET /api/reports/:type?from=&to=`, Excel via `/export`): `sales`, `profit-loss`,
-  `pending-payments`, `payments`, `product-sales`, `inventory`, `services`, `expenses`.
-- **Backup** (`GET /api/backup`): one .xlsx with every entity (customers read from Google Sheets).
-  Login accounts are never included.
-- **Restore** (`POST /api/backup/restore`, raw .xlsx body, `?customers=false` to keep Google Sheets
-  customers): validates the whole file first, saves a snapshot of the current data to `BACKUP_DIR`
-  (`backend/backups/`), then replaces each entity found in the file. To undo a restore, restore that snapshot.
-
-## Excel storage notes
-
-- Each write is serialised per file and written atomically (temp file + rename), so concurrent
-  requests can't lose updates and a crash can't leave a half-written workbook.
-- **Run a single backend process.** The write lock is in-process; cluster mode or multiple
-  instances could corrupt data.
-- You can open the workbooks in Excel to view data. **Close Excel before saving changes in AgniDesk.**
-  On Windows an open file is locked, and the API returns a "file is locked" error.
-- Formatting added manually in Excel is not preserved; AgniDesk rewrites the sheet on each save.
-- Quotation/invoice line items and the customer snapshot are stored as JSON text in one cell each.
-  Totals have their own columns so the workbook stays readable.
+- Your existing columns are matched by header name; extra columns the app needs are **appended to the end of the
+  header row at startup** (existing columns are never moved). Unknown columns you add are kept.
+- Rows whose ID doesn't look like the app's IDs (e.g. `CUS-0001`) are ignored.
+- **Edit data in AgniDesk.** Direct edits in the sheet show in the app within ~5 s, but editing calculated/JSON
+  columns or deleting rows that other records reference can break totals.
+- Google API quota (~60 requests/min): all tabs are read in one batch request and cached ~5 s; rate-limit errors
+  are retried automatically with backoff.
+- **Security:** the Users tab holds password hashes and roles. Share the spreadsheet only with the service account
+  and the admins. Use report exports (Excel) to share data with others.
+- If Google Sheets is unreachable, the app can't be used (every request checks the login account).
+- One-time moves from the old local Excel files (already run): `npm run migrate:customers-to-sheets`,
+  `npm run migrate:users-to-sheets`, `npm run migrate:all-to-sheets` (all safe to re-run).
+- Tab names can be overridden with `GOOGLE_SHEETS_<NAME>_TAB` (used for testing on temporary tabs).
 
 ## Environment variables
 
@@ -189,6 +183,6 @@ Frontend `VITE_*` variables are bundled into the browser and must never contain 
 
 ## Deployment notes
 
-Frontend and backend deploy separately. `DATA_DIR` must point to **persistent storage**
-(e.g. a mounted disk). Serverless platforms with ephemeral filesystems (e.g. Vercel functions)
-must not host the Excel files.
+Frontend and backend deploy separately. All data lives in Google Sheets, so the backend needs **no persistent
+disk** — only its environment variables (JWT secret, spreadsheet ID) and the service account key (provide the JSON
+key as a secret file on the host). Run a single backend instance (write locks are in-process).

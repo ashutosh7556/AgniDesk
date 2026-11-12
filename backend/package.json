@@ -12,7 +12,9 @@
     "dev": "node --env-file-if-exists=.env --watch src/server.js",
     "start": "node --env-file-if-exists=.env src/server.js",
     "test:sheets-customers": "node --env-file-if-exists=.env scripts/testGoogleSheetsCustomers.js",
-    "migrate:customers-to-sheets": "node --env-file-if-exists=.env scripts/migrateCustomersToSheets.js"
+    "migrate:customers-to-sheets": "node --env-file-if-exists=.env scripts/migrateCustomersToSheets.js",
+    "migrate:users-to-sheets": "node --env-file-if-exists=.env scripts/migrateUsersToSheets.js",
+    "migrate:all-to-sheets": "node --env-file-if-exists=.env scripts/migrateAllToSheets.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -17,8 +17,8 @@ router.put('/profile', requireAuth, validate({ body: profileSchema }), async (re
 });
 
 router.put('/password', requireAuth, validate({ body: passwordSchema }), async (req, res) => {
-  await authService.changePassword(req.auth.userId, req.valid.body);
-  res.json({ success: true, data: { message: 'Password changed.' } });
+  const { token } = await authService.changePassword(req.auth.userId, req.valid.body);
+  res.json({ success: true, data: { message: 'Password changed.', token } });
 });
 
 export default router;
