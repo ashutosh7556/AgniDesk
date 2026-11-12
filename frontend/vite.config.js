@@ -51,13 +51,24 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
           runtimeCaching: [], // nothing else is cached — especially not API responses
         },
-        devOptions: { enabled: false },
+        // Also active in 'npm run dev' so install/offline can be tried locally.
+        devOptions: { enabled: true, type: 'module', navigateFallback: 'index.html' },
       }),
     ],
     server: {
       port: 5173,
       // In development, /api calls are proxied to the Express backend,
       // so the browser sees a single origin and no CORS setup is needed locally.
+      proxy: {
+        '/api': {
+          target: env.VITE_DEV_API_PROXY || 'http://localhost:5000',
+          changeOrigin: true,
+        },
+      },
+    },
+    // "npm run preview" (built app incl. PWA) uses the same /api proxy.
+    preview: {
+      port: 4173,
       proxy: {
         '/api': {
           target: env.VITE_DEV_API_PROXY || 'http://localhost:5000',
