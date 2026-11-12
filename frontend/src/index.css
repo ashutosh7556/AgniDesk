@@ -52,6 +52,15 @@
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-fire-600 to-flame-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-fire-700 hover:to-flame-600 disabled:cursor-not-allowed disabled:opacity-60;
   }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-fire-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-fire-700 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-icon {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent;
+  }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900;
   }

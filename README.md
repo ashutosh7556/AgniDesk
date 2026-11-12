@@ -4,25 +4,27 @@ Business management system for **Agni Setu Fire Safety** — *Where Safety Meets
 
 Manages customers, inventory, quotations, GST / non-GST invoices, expenses, fire safety services, payments and reports.
 
-> **Status: Phase 1** — project setup, login UI (mock auth), dashboard UI (sample data), Express backend with health check.
+> **Status: Phase 2** — owner login (JWT), customers, products & inventory, Excel storage. Dashboard figures are still sample data.
 
 ## Tech stack
 
 | Layer    | Technology |
 | -------- | ---------- |
 | Frontend | React 19, Vite, React Router, Tailwind CSS v4, Lucide icons |
-| Backend  | Node.js (>= 22.9), Express 5, Helmet, CORS |
-| Storage  | Excel (`.xlsx`) via `xlsx` — *from Phase 2* |
-| Auth     | JWT + bcrypt — *from Phase 2* |
+| Backend  | Node.js (>= 22.9), Express 5, Helmet, CORS, zod, express-rate-limit |
+| Storage  | Excel (`.xlsx`) files via `exceljs`, one workbook per entity |
+| Auth     | JWT (`jsonwebtoken`) + bcrypt (`bcryptjs`) |
 
 In development, Vite proxies `/api/*` to the backend, so no CORS setup is needed locally.
 
-**Login (Phase 1 mock):** any valid email plus a password of 6+ characters.
+**Login:** owner email and password set in `backend/.env` on first start. See [docs/SETUP.md](docs/SETUP.md) for setup, API reference and Excel storage notes.
 
 ## API
 
-| Method | Endpoint      | Description          |
-| ------ | ------------- | -------------------- |
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
 | GET    | `/api/health` | Service health check |
-
-
+| POST   | `/api/auth/login` | Owner login |
+| GET    | `/api/auth/me` | Current user |
+| CRUD   | `/api/customers` | Customers |
+| CRUD   | `/api/products` | Products & inventory |

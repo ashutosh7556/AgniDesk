@@ -1,38 +1,77 @@
+import { tokenStorage } from './tokenStorage.js';
+
 /**
  * Thin fetch wrapper shared by all API services.
  * - Base URL comes from VITE_API_BASE_URL (empty in dev -> Vite proxy).
+ * - Attaches the JWT as "Authorization: Bearer <token>".
  * - Normalises the backend's { success, data | error } envelope.
- * - Phase 2 will attach the JWT Authorization header here.
+ * - On 401 for an authenticated request, clears the token and fires
+ *   UNAUTHORIZED_EVENT so AuthContext can send the user to /login.
  */
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 
+export const UNAUTHORIZED_EVENT = 'agnidesk:unauthorized';
+
 export class ApiRequestError extends Error {
-  constructor(message, status) {
+  constructor(message, status, details = []) {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
+    this.details = details;
+  }
+
+  /** Server validation details as { fieldName: message } for forms. */
+  get fieldErrors() {
+    return Object.fromEntries(this.details.map((d) => [d.field, d.message]));
   }
 }
 
-export async function apiRequest(path, { method = 'GET', body, signal } = {}) {
+const buildUrl = (path, query) => {
+  const url = `${BASE_URL}/api${path}`;
+  if (!query) return url;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== '' && value !== false) {
+      params.set(key, String(value));
+    }
+  }
+  const qs = params.toString();
+  return qs ? `${url}?${qs}` : url;
+};
+
+export async function apiRequest(path, { method = 'GET', body, query, signal } = {}) {
+  const token = tokenStorage.get();
+  const headers = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   let response;
   try {
-    response = await fetch(`${BASE_URL}/api${path}`, {
+    response = await fetch(buildUrl(path, query), {
       method,
       signal,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (error) {
     if (error.name === 'AbortError') throw error;
-    throw new ApiRequestError('Unable to reach the server.', 0);
+    throw new ApiRequestError('Unable to reach the server. Check that the backend is running.', 0);
   }
+
+  if (response.status === 204) return null;
 
   const payload = await response.json().catch(() => null);
 
   if (!response.ok || !payload?.success) {
-    const message = payload?.error?.message ?? `Request failed (${response.status})`;
-    throw new ApiRequestError(message, response.status);
+    if (response.status === 401 && token) {
+      tokenStorage.clear();
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+    }
+    throw new ApiRequestError(
+      payload?.error?.message ?? `Request failed (${response.status})`,
+      response.status,
+      payload?.error?.details ?? [],
+    );
   }
   return payload.data;
 }

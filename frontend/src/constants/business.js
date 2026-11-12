@@ -20,3 +20,6 @@ export const BUSINESS = Object.freeze({
   ],
   categories: ['Fire Extinguisher', 'Hydrant', 'Safety', 'AMC & Service'],
 });
+
+/** Must match PRODUCT_CATEGORIES in backend/src/validators/product.validator.js. */
+export const PRODUCT_CATEGORIES = BUSINESS.categories;

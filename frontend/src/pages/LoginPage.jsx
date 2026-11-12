@@ -160,10 +160,6 @@ export default function LoginPage() {
                 {isSubmitting ? 'Signing in...' : 'Sign in'}
               </button>
             </form>
-
-            <p className="mt-6 rounded-lg bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
-              Development preview: any valid email and a password of 6+ characters will sign in.
-            </p>
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-400">
