@@ -1,39 +1,22 @@
-import PDFDocument from 'pdfkit';
-import { BUSINESS } from '../../config/business.js';
 import { amountInWords } from '../../utils/amountInWords.js';
+import { BUSINESS } from '../../config/business.js';
+import {
+  BOTTOM_LIMIT,
+  COLORS,
+  CONTENT_WIDTH,
+  PAGE,
+  drawBrandHeader,
+  drawSignature,
+  formatDate,
+  pdfFileNameFor,
+  renderPdf,
+} from './pdfCommon.js';
 
-/**
- * Renders a quotation or invoice to a PDF Buffer (A4).
- *
- * Uses the built-in Helvetica font, so amounts are written as "Rs." — the
- * standard PDF fonts have no ₹ glyph. Embedding a TTF font (e.g. Noto Sans)
- * would allow the ₹ symbol if preferred.
- */
-
-const COLORS = {
-  navy: '#0f172a',
-  fire: '#c8161f',
-  flame: '#f26a1b',
-  gold: '#f5a70b',
-  text: '#1e293b',
-  muted: '#64748b',
-  border: '#e2e8f0',
-  headerBg: '#f1f5f9',
-  softText: '#cbd5e1',
-};
-
-const PAGE = { width: 595.28, height: 841.89, margin: 40 };
-const CONTENT_WIDTH = PAGE.width - PAGE.margin * 2;
-const FOOTER_SPACE = 50;
-const BOTTOM_LIMIT = PAGE.height - PAGE.margin - FOOTER_SPACE;
+/** Renders a quotation or invoice to a PDF Buffer (A4). Shared branding lives in pdfCommon.js. */
 
 const number2 = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const amount = (value) => number2.format(value);
 const rupees = (value) => `Rs. ${number2.format(value)}`;
-const formatDate = (iso) =>
-  new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
-    new Date(`${iso}T00:00:00Z`),
-  );
 
 /** Column layouts (widths sum to CONTENT_WIDTH = 515). */
 const GST_COLUMNS = [
@@ -79,38 +62,8 @@ function documentTitle(kind, document) {
 
 // ---------------------------------------------------------------------------
 
-function drawHeader(pdf, kind, document) {
-  pdf.rect(0, 0, PAGE.width, 112).fill(COLORS.navy);
-  // Brand accent stripe: fire red -> orange -> gold
-  const stripe = PAGE.width / 3;
-  pdf.rect(0, 112, stripe, 4).fill(COLORS.fire);
-  pdf.rect(stripe, 112, stripe, 4).fill(COLORS.flame);
-  pdf.rect(stripe * 2, 112, stripe + 1, 4).fill(COLORS.gold);
-
-  const left = PAGE.margin;
-  pdf.fillColor('#ffffff').font('Helvetica-Bold').fontSize(18).text(BUSINESS.name, left, 26, { width: 320 });
-  pdf.fillColor(COLORS.gold).font('Helvetica-Bold').fontSize(8.5).text(BUSINESS.tagline.toUpperCase(), left, 49, {
-    width: 320,
-    characterSpacing: 1.2,
-  });
-  pdf.fillColor(COLORS.softText).font('Helvetica').fontSize(8);
-  pdf.text(BUSINESS.address, left, 66, { width: 320 });
-  pdf.text(`${BUSINESS.phones.join('  |  ')}  |  ${BUSINESS.email}`, left, pdf.y + 2, { width: 340 });
-  if (BUSINESS.gstin) {
-    pdf.fillColor('#ffffff').font('Helvetica-Bold').text(`GSTIN: ${BUSINESS.gstin}`, left, pdf.y + 2, { width: 320 });
-  }
-
-  const rightX = PAGE.width - PAGE.margin - 190;
-  pdf.fillColor('#ffffff').font('Helvetica-Bold').fontSize(17).text(documentTitle(kind, document), rightX, 28, {
-    width: 190,
-    align: 'right',
-  });
-  pdf.fillColor(COLORS.gold).fontSize(10.5).text(document.number, rightX, 52, { width: 190, align: 'right' });
-  pdf.fillColor(COLORS.softText).font('Helvetica').fontSize(8.5).text(`Date: ${formatDate(document.date)}`, rightX, 68, {
-    width: 190,
-    align: 'right',
-  });
-}
+const drawHeader = (pdf, kind, document) =>
+  drawBrandHeader(pdf, { title: documentTitle(kind, document), number: document.number, date: document.date });
 
 function drawParties(pdf, kind, document) {
   const top = 134;
@@ -269,18 +222,6 @@ function drawTextSection(pdf, title, text, startY) {
   return pdf.y + 14;
 }
 
-function drawSignature(pdf, startY) {
-  let y = startY + 10;
-  if (y + 60 > BOTTOM_LIMIT) {
-    pdf.addPage();
-    y = PAGE.margin;
-  }
-  const x = PAGE.width - PAGE.margin - 200;
-  pdf.fillColor(COLORS.text).font('Helvetica-Bold').fontSize(9).text(`For ${BUSINESS.name}`, x, y, { width: 200, align: 'right' });
-  pdf.moveTo(x + 60, y + 45).lineTo(x + 200, y + 45).lineWidth(0.5).strokeColor(COLORS.muted).stroke();
-  pdf.fillColor(COLORS.muted).font('Helvetica').fontSize(8).text('Authorised Signatory', x, y + 50, { width: 200, align: 'right' });
-}
-
 function drawCancelledWatermark(pdf) {
   pdf.save();
   pdf.rotate(-35, { origin: [PAGE.width / 2, PAGE.height / 2] });
@@ -291,22 +232,6 @@ function drawCancelledWatermark(pdf) {
 }
 
 /** Footer on every page (page numbers need all pages buffered first). */
-function drawFooters(pdf) {
-  const range = pdf.bufferedPageRange();
-  for (let i = range.start; i < range.start + range.count; i += 1) {
-    pdf.switchToPage(i);
-    // Temporarily remove the bottom margin so writing in the footer area doesn't trigger a new page.
-    const { bottom } = pdf.page.margins;
-    pdf.page.margins.bottom = 0;
-    const y = PAGE.height - PAGE.margin + 6;
-    pdf.moveTo(PAGE.margin, y - 8).lineTo(PAGE.width - PAGE.margin, y - 8).lineWidth(0.5).strokeColor(COLORS.border).stroke();
-    pdf.fillColor(COLORS.muted).font('Helvetica').fontSize(7.5);
-    pdf.text('This is a computer-generated document.', PAGE.margin, y, { width: 300 });
-    pdf.text(`Page ${i - range.start + 1} of ${range.count}`, PAGE.width - PAGE.margin - 100, y, { width: 100, align: 'right' });
-    pdf.page.margins.bottom = bottom;
-  }
-}
-
 // ---------------------------------------------------------------------------
 
 /**
@@ -315,40 +240,17 @@ function drawFooters(pdf) {
  * @returns {Promise<Buffer>}
  */
 export function renderBillingDocumentPdf(document, kind) {
-  return new Promise((resolve, reject) => {
-    const pdf = new PDFDocument({
-      size: 'A4',
-      margin: PAGE.margin,
-      bufferPages: true,
-      info: {
-        Title: `${documentTitle(kind, document)} ${document.number}`,
-        Author: BUSINESS.name,
-        Creator: 'AgniDesk',
-      },
-    });
-
-    const chunks = [];
-    pdf.on('data', (chunk) => chunks.push(chunk));
-    pdf.on('end', () => resolve(Buffer.concat(chunks)));
-    pdf.on('error', reject);
-
-    try {
-      drawHeader(pdf, kind, document);
-      if (kind === 'invoice' && document.status === 'cancelled') drawCancelledWatermark(pdf);
-
-      let y = drawParties(pdf, kind, document);
-      y = drawItems(pdf, document.taxMode === 'gst' ? GST_COLUMNS : PLAIN_COLUMNS, document.items, y);
-      y = drawTotals(pdf, kind, document, y);
-      if (kind === 'quotation') y = drawTextSection(pdf, 'Terms & Conditions', document.terms, y);
-      y = drawTextSection(pdf, 'Notes', document.notes, y);
-      drawSignature(pdf, y);
-      drawFooters(pdf);
-      pdf.end();
-    } catch (error) {
-      reject(error);
-    }
+  return renderPdf({ title: `${documentTitle(kind, document)} ${document.number}` }, (pdf) => {
+    drawHeader(pdf, kind, document);
+    if (kind === 'invoice' && document.status === 'cancelled') drawCancelledWatermark(pdf);
+    let y = drawParties(pdf, kind, document);
+    y = drawItems(pdf, document.taxMode === 'gst' ? GST_COLUMNS : PLAIN_COLUMNS, document.items, y);
+    y = drawTotals(pdf, kind, document, y);
+    if (kind === 'quotation') y = drawTextSection(pdf, 'Terms & Conditions', document.terms, y);
+    y = drawTextSection(pdf, 'Notes', document.notes, y);
+    drawSignature(pdf, y);
   });
 }
 
 /** "INV/2026-27/0001" -> "INV-2026-27-0001.pdf" */
-export const pdfFileName = (document) => `${document.number.replace(/[^\w-]+/g, '-')}.pdf`;
+export const pdfFileName = (document) => pdfFileNameFor(document.number);

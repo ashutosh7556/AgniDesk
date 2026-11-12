@@ -6,6 +6,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx';
 import { ErrorState, LoadingState } from '../../components/ui/States.jsx';
 import CustomerFormModal from '../../components/customers/CustomerFormModal.jsx';
 import CustomerPurchaseHistory from '../../components/customers/CustomerPurchaseHistory.jsx';
+import CustomerServiceHistory from '../../components/customers/CustomerServiceHistory.jsx';
 import { deleteCustomer, getCustomer } from '../../services/customerService.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useToast } from '../../hooks/useToast.js';
@@ -110,6 +111,8 @@ export default function CustomerDetailPage() {
 
         <CustomerPurchaseHistory customerId={customer.id} />
       </div>
+
+      <CustomerServiceHistory customerId={customer.id} />
 
       <CustomerFormModal
         isOpen={isEditOpen}

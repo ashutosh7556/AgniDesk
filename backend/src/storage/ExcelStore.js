@@ -120,11 +120,16 @@ export class ExcelStore {
   }
 
   /** Returns the updated record, or null if the id does not exist. */
-  async update(id, data) {
+  /**
+   * `input` is a data object or `(existingRecord, allRows) => data`; the
+   * function form runs inside the file lock (e.g. assigning a certificate number).
+   */
+  async update(id, input) {
     return this.#mutate((rows) => {
       const index = rows.findIndex((row) => row.id === id);
       if (index === -1) return { rows: null, result: null };
       const existing = rows[index];
+      const data = typeof input === 'function' ? input(existing, rows) : input;
       rows[index] = { ...existing, ...this.#pick(data), updatedAt: new Date().toISOString() };
       return { rows, result: rows[index] };
     });

@@ -35,9 +35,29 @@ export const EXPENSE_CATEGORIES = ['Product Purchases', 'Transportation', 'Insta
 
 export const PAYMENT_MODES = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
 
+/** Based on the services offered on the visiting card. Keep in sync with the frontend. */
+export const SERVICE_TYPES = [
+  'Extinguisher Refilling',
+  'Extinguisher Maintenance',
+  'Extinguisher Installation',
+  'Hydrant Flow & Pressure Test',
+  'Smoke Alarm Inspection',
+  'Fire & Evacuation Plan',
+  'Fire Safety Audit / Advisory',
+  'Fire NOC Assistance',
+  'AMC Visit',
+  'Other',
+];
+
+export const SERVICE_STATUSES = ['scheduled', 'completed', 'cancelled'];
+
+/** Reminders show services due within this many days (plus overdue). */
+export const REMINDER_WINDOW_DAYS = 30;
+
 /** Document number prefixes. Numbers restart every financial year (Apr–Mar). */
 export const NUMBER_PREFIX = Object.freeze({
   quotation: 'QT',
   gstInvoice: 'INV',
   nonGstInvoice: 'NG',
+  certificate: 'CERT',
 });

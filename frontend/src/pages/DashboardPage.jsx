@@ -2,7 +2,6 @@ import { Link } from 'react-router';
 import {
   AlertCircle,
   Boxes,
-  CalendarClock,
   IndianRupee,
   PiggyBank,
   Plus,
@@ -18,6 +17,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/ui/States.js
 import SalesOverviewChart from '../components/dashboard/SalesOverviewChart.jsx';
 import RecentActivity from '../components/dashboard/RecentActivity.jsx';
 import InventoryOverview from '../components/dashboard/InventoryOverview.jsx';
+import RemindersList from '../components/services/RemindersList.jsx';
 import { getDashboard } from '../services/dashboardService.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useFetch } from '../hooks/useFetch.js';
@@ -84,8 +84,8 @@ export default function DashboardPage() {
             <EmptyState icon={ShoppingCart} title="No sales yet" message="Sales appear here once you create invoices." />
           )}
         </SectionCard>
-        <SectionCard title="Upcoming Services" subtitle="Next service due dates" action={<ViewAllLink to="/services" />}>
-          <EmptyState icon={CalendarClock} title="Coming in Phase 5" message="Service records and reminders are added in the next phase." />
+        <SectionCard title="Upcoming Services" subtitle={s.servicesOverdue ? `${s.servicesOverdue} overdue · ${s.servicesDueSoon} due in 30 days` : `${s.servicesDueSoon} due in 30 days`} action={<ViewAllLink to="/services" />}>
+          <RemindersList reminders={data.upcomingServices} compact />
         </SectionCard>
       </div>
 

@@ -100,6 +100,11 @@ Protected routes need `Authorization: Bearer <token>`.
 | POST / PUT / DELETE | `/api/expenses[/:id]` | ✓ | Create / update / delete expense |
 | GET | `/api/products/:id/stock` | ✓ | Stock history with running balance |
 | POST | `/api/products/:id/stock` | ✓ | Adjust stock `{ date, type: purchase|adjustment, quantity, note }` |
+| GET | `/api/services?search=&customerId=&status=&serviceType=&page=&limit=` | ✓ | Service records + summary counts |
+| GET | `/api/services/reminders?days=30` | ✓ | Overdue / due services and scheduled visits |
+| POST / PUT / DELETE | `/api/services[/:id]` | ✓ | Create / update / delete service (delete refused once a certificate exists) |
+| POST | `/api/services/:id/complete` | ✓ | Mark completed and issue certificate number |
+| GET | `/api/services/:id/certificate` | ✓ | Service certificate PDF (completed services only) |
 | GET | `/api/dashboard` | ✓ | Dashboard figures |
 | POST | `/api/invoices/:id/cancel` | ✓ | Cancel invoice (invoices are never deleted) |
 | GET | `/api/invoices/:id/pdf` | ✓ | Invoice PDF |
@@ -128,6 +133,15 @@ Protected routes need `Authorization: Bearer <token>`.
 - An invoice with payments cannot be cancelled until the payments are deleted, and its
   total cannot be reduced below the amount already received.
 - Selling more than available stock is allowed (stock goes negative) with a warning.
+
+## Fire safety services
+
+- Status flow: **scheduled → completed / cancelled**. Completing a service issues a certificate
+  number (`CERT/2026-27/0001`, restarting each financial year), assigned inside the file lock.
+- Completed services can be edited but not reverted or deleted (the certificate may be with the customer).
+- **Reminders:** a completed service with a next due date shows as a reminder from 30 days before
+  the due date (or when overdue) until a newer service of the same type is recorded for that customer.
+  Scheduled visits in the window are listed too. Reminders offer "Book service" and a WhatsApp message.
 
 ## Excel storage notes
 

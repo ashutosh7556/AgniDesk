@@ -1,4 +1,4 @@
-import { customerStore, invoiceStore, quotationStore } from '../storage/stores.js';
+import { customerStore, invoiceStore, quotationStore, serviceStore } from '../storage/stores.js';
 import { ApiError } from '../utils/ApiError.js';
 import { byNewest, matchesSearch, paginate } from '../utils/listing.js';
 
@@ -25,17 +25,18 @@ export async function updateCustomer(id, data) {
 }
 
 /**
- * Hard delete, refused when the customer has quotations or invoices so
+ * Hard delete, refused when the customer has quotations, invoices or service records so
  * business records never point at a missing customer.
  */
 export async function deleteCustomer(id) {
-  const [quotations, invoices] = await Promise.all([quotationStore.findAll(), invoiceStore.findAll()]);
+  const [quotations, invoices, services] = await Promise.all([quotationStore.findAll(), invoiceStore.findAll(), serviceStore.findAll()]);
   const quotationCount = quotations.filter((q) => q.customerId === id).length;
   const invoiceCount = invoices.filter((inv) => inv.customerId === id).length;
-  if (quotationCount || invoiceCount) {
+  const serviceCount = services.filter((s) => s.customerId === id).length;
+  if (quotationCount || invoiceCount || serviceCount) {
     throw new ApiError(
       409,
-      `This customer has ${invoiceCount} invoice(s) and ${quotationCount} quotation(s) and cannot be deleted.`,
+      `This customer has ${invoiceCount} invoice(s), ${quotationCount} quotation(s) and ${serviceCount} service record(s) and cannot be deleted.`,
     );
   }
 

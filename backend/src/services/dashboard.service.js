@@ -1,8 +1,9 @@
-import { customerStore, expenseStore, paymentStore, productStore, quotationStore } from '../storage/stores.js';
+import { customerStore, expenseStore, paymentStore, productStore, quotationStore, serviceStore } from '../storage/stores.js';
 import { round2 } from '../utils/billing.js';
 import { todayIST } from '../utils/dates.js';
 import { findAllInvoicesWithPayments } from './invoice.service.js';
 import { getStockLevels } from './inventory.service.js';
+import { buildReminders } from './serviceRecord.service.js';
 
 /**
  * Dashboard figures. "Sales" = invoice grand totals (incl. GST) of active invoices.
@@ -32,7 +33,7 @@ export async function getDashboard() {
   // Same number of days into last month, for a fair month-to-date comparison.
   const lastMonthSameDay = shiftDate(lastMonthStart, { days: Number(today.slice(8, 10)) - 1 });
 
-  const [invoices, customers, expenses, payments, quotations, products, levels] = await Promise.all([
+  const [invoices, customers, expenses, payments, quotations, products, levels, services] = await Promise.all([
     findAllInvoicesWithPayments(),
     customerStore.findAll(),
     expenseStore.findAll(),
@@ -40,7 +41,9 @@ export async function getDashboard() {
     quotationStore.findAll(),
     productStore.findAll(),
     getStockLevels(),
+    serviceStore.findAll(),
   ]);
+  const reminders = buildReminders(services, today);
 
   const active = invoices.filter((inv) => inv.status !== 'cancelled');
   const thisMonth = active.filter((inv) => inRange(inv.date, monthStart, today));
@@ -103,6 +106,16 @@ export async function getDashboard() {
       link: '/expenses',
       at: e.createdAt,
     })),
+    ...services
+      .filter((s) => s.status === 'completed')
+      .map((s) => ({
+        id: s.id,
+        type: 'service',
+        title: `Service completed · ${s.serviceType}`,
+        detail: s.certificateNumber ? `${s.customerName} · ${s.certificateNumber}` : s.customerName,
+        link: `/services/${s.id}`,
+        at: s.completedAt || s.updatedAt,
+      })),
     ...customers.map((c) => ({
       id: c.id,
       type: 'customer',
@@ -131,7 +144,10 @@ export async function getDashboard() {
       invoicesThisMonth: thisMonth.length,
       availableStock: round2(stock.reduce((total, p) => total + Math.max(p.quantity, 0), 0)),
       lowStockItems: lowStock.length,
+      servicesOverdue: reminders.filter((r) => r.daysLeft < 0).length,
+      servicesDueSoon: reminders.filter((r) => r.daysLeft >= 0).length,
     },
+    upcomingServices: reminders.slice(0, 6),
     salesOverview,
     // Low-stock items first, then the rest by quantity
     inventory: [...stock].sort((a, b) => Number(b.quantity <= b.lowStockThreshold) - Number(a.quantity <= a.lowStockThreshold) || a.quantity - b.quantity).slice(0, 6),

@@ -28,6 +28,21 @@ export const PRODUCT_CATEGORIES = BUSINESS.categories;
 export const EXPENSE_CATEGORIES = ['Product Purchases', 'Transportation', 'Installation', 'Maintenance', 'Other'];
 export const PAYMENT_MODES = ['Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Card'];
 
+/** Must match SERVICE_TYPES / SERVICE_STATUSES in backend/src/config/business.js. */
+export const SERVICE_TYPES = [
+  'Extinguisher Refilling',
+  'Extinguisher Maintenance',
+  'Extinguisher Installation',
+  'Hydrant Flow & Pressure Test',
+  'Smoke Alarm Inspection',
+  'Fire & Evacuation Plan',
+  'Fire Safety Audit / Advisory',
+  'Fire NOC Assistance',
+  'AMC Visit',
+  'Other',
+];
+export const SERVICE_STATUS_LABELS = { scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled' };
+
 /** Must match GST_RATES / DEFAULT_GST_RATE in backend/src/config/business.js. */
 export const GST_RATES = [0, 5, 18, 40];
 export const DEFAULT_GST_RATE = 18;

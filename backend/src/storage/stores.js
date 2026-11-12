@@ -158,6 +158,30 @@ export const expenseStore = new ExcelStore({
   ],
 });
 
+/** Fire safety service visits. Certificate number is assigned when a service is completed. */
+export const serviceStore = new ExcelStore({
+  dataDir: env.dataDir,
+  fileName: 'services.xlsx',
+  sheetName: 'Services',
+  idPrefix: 'SRV',
+  columns: [
+    { key: 'serviceDate', header: 'Service Date', type: 'string', width: 12 },
+    { key: 'customerId', header: 'Customer ID', type: 'string', width: 12 },
+    { key: 'customerName', header: 'Customer Name', type: 'string', width: 28 },
+    { key: 'serviceType', header: 'Service Type', type: 'string', width: 28 },
+    { key: 'status', header: 'Status', type: 'string', width: 12, default: 'scheduled' },
+    { key: 'nextDueDate', header: 'Next Due Date', type: 'string', width: 13 },
+    { key: 'charges', header: 'Charges', type: 'number', width: 12 },
+    { key: 'technician', header: 'Technician', type: 'string', width: 18 },
+    { key: 'siteAddress', header: 'Site Address', type: 'string', width: 40 },
+    { key: 'remarks', header: 'Remarks', type: 'string', width: 40 },
+    { key: 'certificateNumber', header: 'Certificate No.', type: 'string', width: 18 },
+    { key: 'completedAt', header: 'Completed At', type: 'string', width: 22 },
+    { key: 'customer', header: 'Customer Snapshot (JSON)', type: 'json', width: 40, default: {} },
+    { key: 'equipment', header: 'Equipment (JSON)', type: 'json', width: 50, default: [] },
+  ],
+});
+
 /** Ensures the data folder and every workbook exist. Called once at startup. */
 export const initStores = () =>
   Promise.all([
@@ -169,4 +193,5 @@ export const initStores = () =>
     stockMovementStore.init(),
     paymentStore.init(),
     expenseStore.init(),
+    serviceStore.init(),
   ]);
