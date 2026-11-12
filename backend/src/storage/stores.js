@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import { ExcelStore } from './ExcelStore.js';
+import { GoogleSheetsStore } from './GoogleSheetsStore.js';
 import { DEFAULT_GST_RATE } from '../config/business.js';
 
 /**
@@ -20,18 +21,27 @@ export const userStore = new ExcelStore({
   ],
 });
 
-export const customerStore = new ExcelStore({
-  dataDir: env.dataDir,
-  fileName: 'customers.xlsx',
+/**
+ * Customers are stored in GOOGLE SHEETS ("Customers" tab), not Excel.
+ * Same interface as ExcelStore, so customer.service and every module that
+ * reads customers (invoices, quotations, services, dashboard) work unchanged.
+ * The old backend/data/customers.xlsx is no longer read or written
+ * (copy existing rows over with: npm run migrate:customers-to-sheets).
+ */
+export const customerStore = new GoogleSheetsStore({
   sheetName: 'Customers',
   idPrefix: 'CUS',
   columns: [
-    { key: 'name', header: 'Customer Name', type: 'string', width: 26 },
-    { key: 'companyName', header: 'Company Name', type: 'string', width: 28 },
-    { key: 'mobile', header: 'Mobile', type: 'string', width: 16 },
-    { key: 'email', header: 'Email', type: 'string', width: 30 },
-    { key: 'address', header: 'Address', type: 'string', width: 44 },
-    { key: 'gstNumber', header: 'GST Number', type: 'string', width: 18 },
+    { key: 'id', header: 'CustomerID', type: 'string' },
+    { key: 'name', header: 'Name', type: 'string' },
+    { key: 'companyName', header: 'Company', type: 'string' },
+    { key: 'mobile', header: 'Mobile', type: 'string' },
+    { key: 'email', header: 'Email', type: 'string' },
+    { key: 'address', header: 'Address', type: 'string' },
+    { key: 'gstNumber', header: 'GSTNumber', type: 'string' },
+    { key: 'createdAt', header: 'CreatedAt', type: 'string' },
+    // Written only if you add an "UpdatedAt" column to the sheet.
+    { key: 'updatedAt', header: 'UpdatedAt', type: 'string', optional: true },
   ],
 });
 

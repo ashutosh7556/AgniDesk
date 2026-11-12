@@ -143,6 +143,20 @@ Protected routes need `Authorization: Bearer <token>`.
   the due date (or when overdue) until a newer service of the same type is recorded for that customer.
   Scheduled visits in the window are listed too. Reminders offer "Book service" and a WhatsApp message.
 
+## Google Sheets storage (customers)
+
+- **Customers are stored in Google Sheets** (tab `Customers`), not Excel. All other data is still in Excel.
+- Setup: `GOOGLE_SHEETS_SPREADSHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` in `backend/.env`; key file in
+  `backend/credentials/` (git-ignored); share the spreadsheet with the service account email as Editor.
+- Required headers in row 1: `CustomerID, Name, Company, Mobile, Email, Address, GSTNumber, CreatedAt`
+  (optional `UpdatedAt`). Columns are matched by name; extra columns you add are kept.
+- Rows whose CustomerID is not `CUS-0001` style are ignored. Edits made directly in the sheet show in the
+  app within ~5 seconds (short read cache to stay within Google's API quota).
+- Commands (from `backend/`): `npm run test:sheets-customers` (connection test),
+  `npm run migrate:customers-to-sheets` (one-time copy from the old customers.xlsx, safe to re-run).
+- Needs internet. If Google Sheets is unreachable, customer screens show an error; other modules keep working
+  except where they need customer details (e.g. creating an invoice).
+
 ## Excel storage notes
 
 - Each write is serialised per file and written atomically (temp file + rename), so concurrent

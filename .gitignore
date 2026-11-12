@@ -14,6 +14,10 @@ build/
 *.log
 npm-debug.log*
 
+# Credentials (Google service account keys etc.) - never commit
+backend/credentials/
+*service-account*.json
+
 # Business data (Excel storage, backups) - never commit real records
 backend/data/
 backend/data-*/
