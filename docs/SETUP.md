@@ -82,6 +82,34 @@ Protected routes need `Authorization: Bearer <token>`.
 | GET | `/api/products/:id` | ✓ | Product details |
 | PUT | `/api/products/:id` | ✓ | Update product |
 | DELETE | `/api/products/:id` | ✓ | Delete product |
+| GET | `/api/quotations?search=&customerId=&page=&limit=` | ✓ | List quotations |
+| POST | `/api/quotations` | ✓ | Create quotation (number auto-assigned) |
+| GET | `/api/quotations/:id` | ✓ | Quotation details |
+| PUT | `/api/quotations/:id` | ✓ | Update quotation (number unchanged) |
+| DELETE | `/api/quotations/:id` | ✓ | Delete quotation |
+| GET | `/api/quotations/:id/pdf` | ✓ | Quotation PDF |
+| GET | `/api/invoices?search=&customerId=&invoiceType=&paymentStatus=&page=&limit=` | ✓ | List invoices + totals |
+| POST | `/api/invoices` | ✓ | Create GST / Non-GST invoice (number auto-assigned) |
+| GET | `/api/invoices/:id` | ✓ | Invoice details |
+| PUT | `/api/invoices/:id` | ✓ | Update invoice (type and number unchanged) |
+| PATCH | `/api/invoices/:id/payment` | ✓ | `{ amountPaid }` update amount received |
+| POST | `/api/invoices/:id/cancel` | ✓ | Cancel invoice (invoices are never deleted) |
+| GET | `/api/invoices/:id/pdf` | ✓ | Invoice PDF |
+
+## Quotations & invoices
+
+- **Numbering** restarts every financial year (April–March): `QT/2026-27/0001`,
+  `INV/2026-27/0001` (GST) and `NG/2026-27/0001` (Non-GST). Numbers are assigned inside the
+  file lock, so two invoices can never get the same number.
+- **Calculations** happen on the server: discount is applied before tax, GST is split into
+  CGST + SGST (within Gujarat) or charged as IGST (other states, auto-detected from the
+  customer's GSTIN), and the grand total is rounded to the nearest rupee.
+- **Customer snapshot:** each document stores the customer's billing details at the time it
+  was saved, so editing a customer later doesn't change old invoices.
+- **Cancelling:** invoices can't be deleted (continuous GST numbering). Cancelled invoices keep
+  their number, show a CANCELLED watermark and are excluded from totals.
+- Customers with quotations or invoices can't be deleted.
+- Set `BUSINESS_GSTIN` in `backend/.env` so it is printed on GST invoices.
 
 ## Excel storage notes
 
@@ -92,6 +120,8 @@ Protected routes need `Authorization: Bearer <token>`.
 - You can open the workbooks in Excel to view data. **Close Excel before saving changes in AgniDesk.**
   On Windows an open file is locked, and the API returns a "file is locked" error.
 - Formatting added manually in Excel is not preserved; AgniDesk rewrites the sheet on each save.
+- Quotation/invoice line items and the customer snapshot are stored as JSON text in one cell each.
+  Totals have their own columns so the workbook stays readable.
 
 ## Environment variables
 

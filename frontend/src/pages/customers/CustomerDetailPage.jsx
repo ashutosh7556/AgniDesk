@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Building2, Mail, MapPin, Pencil, Phone, Receipt, Trash2 } from 'lucide-react';
+import { ArrowLeft, Building2, Mail, MapPin, Pencil, Phone, Trash2 } from 'lucide-react';
 import SectionCard from '../../components/ui/SectionCard.jsx';
 import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx';
-import { EmptyState, ErrorState, LoadingState } from '../../components/ui/States.jsx';
+import { ErrorState, LoadingState } from '../../components/ui/States.jsx';
 import CustomerFormModal from '../../components/customers/CustomerFormModal.jsx';
+import CustomerPurchaseHistory from '../../components/customers/CustomerPurchaseHistory.jsx';
 import { deleteCustomer, getCustomer } from '../../services/customerService.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useToast } from '../../hooks/useToast.js';
@@ -107,13 +108,7 @@ export default function CustomerDetailPage() {
           </dl>
         </SectionCard>
 
-        <SectionCard title="Purchase History" subtitle="Quotations and invoices" className="lg:col-span-2">
-          <EmptyState
-            icon={Receipt}
-            title="No quotations or invoices yet"
-            message="This customer's quotations, invoices and purchase history will appear here once billing is added in Phase 3."
-          />
-        </SectionCard>
+        <CustomerPurchaseHistory customerId={customer.id} />
       </div>
 
       <CustomerFormModal

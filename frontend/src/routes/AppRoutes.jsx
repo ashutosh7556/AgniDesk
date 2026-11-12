@@ -7,12 +7,18 @@ import DashboardPage from '../pages/DashboardPage.jsx';
 import CustomersPage from '../pages/customers/CustomersPage.jsx';
 import CustomerDetailPage from '../pages/customers/CustomerDetailPage.jsx';
 import ProductsPage from '../pages/products/ProductsPage.jsx';
+import QuotationsPage from '../pages/quotations/QuotationsPage.jsx';
+import QuotationFormPage from '../pages/quotations/QuotationFormPage.jsx';
+import QuotationDetailPage from '../pages/quotations/QuotationDetailPage.jsx';
+import InvoicesPage from '../pages/invoices/InvoicesPage.jsx';
+import InvoiceFormPage from '../pages/invoices/InvoiceFormPage.jsx';
+import InvoiceDetailPage from '../pages/invoices/InvoiceDetailPage.jsx';
 import ComingSoonPage from '../pages/ComingSoonPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 import { NAV_ITEMS } from '../constants/navigation.js';
 
-/** Modules not built yet (phase 3+) render a placeholder so navigation never dead-ends. */
-const CURRENT_PHASE = 2;
+/** Modules not built yet (later phases) render a placeholder so navigation never dead-ends. */
+const CURRENT_PHASE = 3;
 const upcomingModules = NAV_ITEMS.filter((item) => item.phase > CURRENT_PHASE);
 
 export default function AppRoutes() {
@@ -29,6 +35,14 @@ export default function AppRoutes() {
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/quotations" element={<QuotationsPage />} />
+          <Route path="/quotations/new" element={<QuotationFormPage />} />
+          <Route path="/quotations/:id" element={<QuotationDetailPage />} />
+          <Route path="/quotations/:id/edit" element={<QuotationFormPage />} />
+          <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/invoices/new" element={<InvoiceFormPage />} />
+          <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+          <Route path="/invoices/:id/edit" element={<InvoiceFormPage />} />
           {upcomingModules.map((item) => (
             <Route
               key={item.path}

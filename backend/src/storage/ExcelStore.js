@@ -22,15 +22,30 @@ const normaliseCellValue = (value) => {
   return value;
 };
 
-const coerce = (value, type) => {
+const TYPE_DEFAULTS = { string: '', number: 0, json: null };
+
+/** Cell -> JS value. Blank cells (e.g. a column added in a later phase) get the column default. */
+const coerce = (value, column) => {
   const raw = normaliseCellValue(value);
-  if (type === 'number') {
-    if (raw === '') return 0;
+  const fallback = column.default ?? TYPE_DEFAULTS[column.type];
+  if (raw === '') return structuredClone(fallback);
+  if (column.type === 'number') {
     const num = Number(raw);
-    return Number.isFinite(num) ? num : 0;
+    return Number.isFinite(num) ? num : fallback;
+  }
+  if (column.type === 'json') {
+    try {
+      return JSON.parse(String(raw));
+    } catch {
+      return structuredClone(fallback);
+    }
   }
   return String(raw).trim();
 };
+
+/** JS value -> cell. JSON columns are stored as text (e.g. invoice line items). */
+const serialise = (value, column) =>
+  column.type === 'json' ? JSON.stringify(value ?? column.default ?? null) : value;
 
 const SYSTEM_KEYS = new Set(['id', 'createdAt', 'updatedAt']);
 
@@ -48,8 +63,9 @@ const SYSTEM_KEYS = new Set(['id', 'createdAt', 'updatedAt']);
  * Reads are lock-free: thanks to the atomic rename a reader always sees
  * either the complete old file or the complete new file.
  *
- * columns: [{ key, header, type: 'string' | 'number', width? }]
+ * columns: [{ key, header, type: 'string' | 'number' | 'json', width?, default? }]
  * 'id', 'createdAt' and 'updatedAt' columns are added automatically.
+ * 'json' columns hold structured data (e.g. line items) as JSON text in one cell.
  */
 export class ExcelStore {
   constructor({ dataDir, fileName, sheetName, idPrefix, columns }) {
@@ -87,8 +103,14 @@ export class ExcelStore {
     return rows.find((row) => row.id === id) ?? null;
   }
 
-  async create(data) {
+  /**
+   * `input` is either a data object or a function `(existingRows) => data`.
+   * The function form runs inside the file lock, so values derived from
+   * existing rows (e.g. the next invoice number) can never be duplicated.
+   */
+  async create(input) {
     return this.#mutate((rows) => {
+      const data = typeof input === 'function' ? input(rows) : input;
       const now = new Date().toISOString();
       const record = { ...this.#pick(data), id: this.#nextId(rows), createdAt: now, updatedAt: now };
       rows.push(record);
@@ -172,9 +194,9 @@ export class ExcelStore {
     const rows = [];
     sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return;
-      const record = Object.fromEntries(this.columns.map((c) => [c.key, coerce('', c.type)]));
+      const record = Object.fromEntries(this.columns.map((c) => [c.key, coerce('', c)]));
       for (const [colNumber, column] of columnByIndex) {
-        record[column.key] = coerce(row.getCell(colNumber).value, column.type);
+        record[column.key] = coerce(row.getCell(colNumber).value, column);
       }
       if (record.id) rows.push(record);
     });
@@ -189,7 +211,9 @@ export class ExcelStore {
     });
     sheet.columns = this.columns.map((c) => ({ header: c.header, key: c.key, width: c.width ?? 18 }));
     sheet.getRow(1).font = { bold: true };
-    sheet.addRows(rows);
+    sheet.addRows(
+      rows.map((row) => Object.fromEntries(this.columns.map((c) => [c.key, serialise(row[c.key], c)]))),
+    );
 
     const tempPath = `${this.filePath}.tmp`;
     await workbook.xlsx.writeFile(tempPath);

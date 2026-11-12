@@ -5,7 +5,7 @@ import { SelectField, TextField } from '../ui/FormControls.jsx';
 import { createProduct, updateProduct } from '../../services/productService.js';
 import { validateProduct } from '../../utils/validation.js';
 import { formatCurrency } from '../../utils/format.js';
-import { PRODUCT_CATEGORIES } from '../../constants/business.js';
+import { DEFAULT_GST_RATE, GST_RATES, PRODUCT_CATEGORIES } from '../../constants/business.js';
 import { useToast } from '../../hooks/useToast.js';
 
 const EMPTY_FORM = {
@@ -15,6 +15,8 @@ const EMPTY_FORM = {
   sellingPrice: '',
   quantity: '0',
   lowStockThreshold: '5',
+  hsnCode: '',
+  gstRate: String(DEFAULT_GST_RATE),
 };
 
 // Numbers are edited as strings so users can clear a field while typing.
@@ -28,6 +30,8 @@ const toPayload = (form) => ({
   sellingPrice: Number(form.sellingPrice),
   quantity: Number(form.quantity),
   lowStockThreshold: Number(form.lowStockThreshold),
+  hsnCode: form.hsnCode.trim(),
+  gstRate: Number(form.gstRate),
 });
 
 /** Add / edit product. Pass `product` to edit, omit it to create. */
@@ -107,6 +111,31 @@ export default function ProductFormModal({ isOpen, product, onClose, onSaved }) 
           placeholder="Select category"
           className="sm:col-span-2"
         />
+        <TextField
+          label="HSN/SAC code"
+          name="hsnCode"
+          inputMode="numeric"
+          maxLength={8}
+          value={form.hsnCode}
+          onChange={handleChange}
+          error={errors.hsnCode}
+          hint="Optional. Printed on GST invoices."
+        />
+        <div>
+          <label htmlFor="field-gstRate" className="mb-1.5 block text-sm font-medium text-slate-700">GST rate</label>
+          <select
+            id="field-gstRate"
+            name="gstRate"
+            value={form.gstRate}
+            onChange={handleChange}
+            className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-100"
+          >
+            {GST_RATES.map((rate) => (
+              <option key={rate} value={rate}>{rate}%</option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-xs text-slate-500">Default rate when added to an invoice.</p>
+        </div>
         <TextField label="Purchase price" name="purchasePrice" type="number" inputMode="decimal" min="0" step="0.01" prefix="₹" value={form.purchasePrice} onChange={handleChange} error={errors.purchasePrice} required />
         <TextField label="Selling price" name="sellingPrice" type="number" inputMode="decimal" min="0" step="0.01" prefix="₹" value={form.sellingPrice} onChange={handleChange} error={errors.sellingPrice} required />
         {showMargin && (

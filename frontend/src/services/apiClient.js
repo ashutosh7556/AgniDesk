@@ -39,7 +39,8 @@ const buildUrl = (path, query) => {
   return qs ? `${url}?${qs}` : url;
 };
 
-export async function apiRequest(path, { method = 'GET', body, query, signal } = {}) {
+/** responseType: 'json' (default) | 'blob' (e.g. PDF downloads). */
+export async function apiRequest(path, { method = 'GET', body, query, signal, responseType = 'json' } = {}) {
   const token = tokenStorage.get();
   const headers = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -59,6 +60,7 @@ export async function apiRequest(path, { method = 'GET', body, query, signal } =
   }
 
   if (response.status === 204) return null;
+  if (responseType === 'blob' && response.ok) return response.blob();
 
   const payload = await response.json().catch(() => null);
 

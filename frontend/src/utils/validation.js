@@ -46,6 +46,8 @@ export const validateProduct = (form) => {
   const errors = {};
   if (!form.name.trim()) errors.name = 'Product name is required.';
   if (!form.category) errors.category = 'Select a category.';
+  if (form.hsnCode?.trim() && !/^\d{4,8}$/.test(form.hsnCode.trim()))
+    errors.hsnCode = 'HSN/SAC code must be 4 to 8 digits.';
   const checks = {
     purchasePrice: checkNumber(form.purchasePrice, 'Purchase price'),
     sellingPrice: checkNumber(form.sellingPrice, 'Selling price'),
