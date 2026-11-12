@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+
+/*
+ * AgniDesk design tokens.
+ * Brand palette derived from the Agni Setu visiting card identity:
+ * charcoal / navy base, fire red + orange accents, golden yellow highlight.
+ */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --color-charcoal-900: #111317;
+  --color-charcoal-800: #1a1d23;
+
+  --color-navy-950: #0b1220;
+  --color-navy-900: #0f172a;
+  --color-navy-800: #16213a;
+  --color-navy-700: #1e2b4a;
+
+  --color-fire-50: #fef2f2;
+  --color-fire-100: #fee2e2;
+  --color-fire-500: #e11d2a;
+  --color-fire-600: #c8161f;
+  --color-fire-700: #a3121a;
+
+  --color-flame-50: #fff7ed;
+  --color-flame-100: #ffedd5;
+  --color-flame-400: #fb8a3c;
+  --color-flame-500: #f26a1b;
+  --color-flame-600: #d9560e;
+
+  --color-gold-100: #fef3c7;
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f5a70b;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-slate-100 text-slate-800;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-flame-500;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-fire-600 to-flame-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-fire-700 hover:to-flame-600 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

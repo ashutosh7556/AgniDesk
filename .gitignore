@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Business data (Excel storage, backups) - never commit real records
+backend/data/
+backend/backups/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
